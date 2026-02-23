@@ -5,24 +5,34 @@ import { ConfirmationProvider } from '@/lib/confirmationContext';
 import { BlockEditor } from '@/components/MainContent';
 import type { Block } from '@/components/MainContent';
 
+const NOW = '2026-02-23T12:00:00.000Z';
+const YESTERDAY = '2026-02-22T09:00:00.000Z';
+const LAST_WEEK = '2026-02-16T14:30:00.000Z';
+
 const blocks: Block[] = [
   {
     id: 't1',
     type: 'text',
     content: '<p>First paragraph of <strong>notes</strong>.</p>',
     colSpan: 2,
+    createdAt: LAST_WEEK,
+    updatedAt: NOW,
   },
   {
     id: 'c1',
     type: 'code',
     content: { code: 'const x = 1;', language: 'javascript' },
     colSpan: 2,
+    createdAt: LAST_WEEK,
+    updatedAt: YESTERDAY,
   },
   {
     id: 'l1',
     type: 'link',
     content: { url: 'https://example.com', label: 'Example' },
     colSpan: 1,
+    createdAt: YESTERDAY,
+    updatedAt: YESTERDAY,
   },
   {
     id: 'a1',
@@ -35,6 +45,8 @@ const blocks: Block[] = [
       ],
     },
     colSpan: 1,
+    createdAt: YESTERDAY,
+    updatedAt: NOW,
   },
   {
     id: 'tb1',
@@ -44,6 +56,8 @@ const blocks: Block[] = [
       rows: [['1', '2']],
     },
     colSpan: 2,
+    createdAt: LAST_WEEK,
+    updatedAt: LAST_WEEK,
   },
   {
     id: 'd1',
@@ -55,6 +69,8 @@ const blocks: Block[] = [
     API --> Cache[(Cache)]`,
     },
     colSpan: 2,
+    createdAt: LAST_WEEK,
+    updatedAt: YESTERDAY,
   },
   {
     id: 'vid1',
@@ -63,6 +79,8 @@ const blocks: Block[] = [
       url: 'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
     },
     colSpan: 2,
+    createdAt: LAST_WEEK,
+    updatedAt: LAST_WEEK,
   },
   {
     id: 'aud1',
@@ -72,6 +90,8 @@ const blocks: Block[] = [
       caption: 'Beethoven — Symphony No. 5, 1st Movement (public domain)',
     },
     colSpan: 2,
+    createdAt: YESTERDAY,
+    updatedAt: YESTERDAY,
   },
 ];
 

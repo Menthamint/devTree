@@ -73,6 +73,32 @@ Unit tests cover pure utility functions with no React or DOM dependencies.
 
 `computePageStats` is a pure function. It takes an array and returns a number — it's the easiest kind of code to unit-test, and regressions would silently break the stats footer.
 
+### `lib/dateUtils.ts`
+
+**File:** [`lib/dateUtils.test.ts`](../lib/dateUtils.test.ts)
+
+| Test | What it verifies |
+|------|------------------|
+| `formatRelativeTime` — 0 s ago | Returns `"just now"` |
+| `formatRelativeTime` — 59 s ago | Still returns `"just now"` (below 1-minute threshold) |
+| `formatRelativeTime` — 60 s ago | Returns `"1 minute ago"` (singular) |
+| `formatRelativeTime` — 5 min ago | Returns `"5 minutes ago"` (plural) |
+| `formatRelativeTime` — 59 min ago | Returns `"59 minutes ago"` (just under hour threshold) |
+| `formatRelativeTime` — 60 min ago | Returns `"1 hour ago"` (singular) |
+| `formatRelativeTime` — 3 h ago | Returns `"3 hours ago"` |
+| `formatRelativeTime` — 23 h ago | Returns `"23 hours ago"` (just under day threshold) |
+| `formatRelativeTime` — 24 h ago | Returns `"1 day ago"` (singular) |
+| `formatRelativeTime` — 6 days ago | Returns `"6 days ago"` |
+| `formatRelativeTime` — 7 days ago | Returns `"1 week ago"` (singular) |
+| `formatRelativeTime` — 29 days ago | Returns `"4 weeks ago"` |
+| `formatRelativeTime` — 30+ days ago | Falls back to medium locale date (no `"ago"`) |
+| `formatRelativeTime` — ISO string input | Accepts ISO datetime strings from the API, not just Date objects |
+| `formatRelativeTime` — exactly 1 week | Returns `"1 week ago"` |
+
+**Why these tests?**
+
+`formatRelativeTime` drives the timestamp display on every page and block. Threshold boundary tests are essential because off-by-one errors (e.g. `< 60` vs `<= 60`) would silently produce wrong relative strings. Using `vi.useFakeTimers` with a fixed `Date.now()` makes all assertions deterministic.
+
 ### `lib/i18n.tsx`
 
 **File:** [`lib/i18n.test.tsx`](../lib/i18n.test.tsx)

@@ -83,6 +83,8 @@ export function apiBlockToBlock(b: ApiBlock): Block {
     content: b.content as Block['content'],
     colSpan: (b.colSpan === 1 ? 1 : 2) as 1 | 2,
     tags: b.tags ?? [],
+    createdAt: b.createdAt,
+    updatedAt: b.updatedAt,
   };
 }
 
@@ -92,6 +94,8 @@ export function apiPageToPage(p: ApiPage): Page {
     title: p.title,
     blocks: (p.blocks ?? []).map(apiBlockToBlock),
     tags: p.tags ?? [],
+    createdAt: p.createdAt,
+    updatedAt: p.updatedAt,
   };
 }
 

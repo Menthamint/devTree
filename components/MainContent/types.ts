@@ -252,6 +252,10 @@ export type Block = {
   tags?: string[];
   /** Transient flag: set to true only for newly created blocks (creation-only) */
   createdNow?: boolean;
+  /** ISO datetime string from the server — when the block was created. */
+  createdAt?: string;
+  /** ISO datetime string from the server — when the block was last saved. */
+  updatedAt?: string;
 };
 
 /**
@@ -274,6 +278,10 @@ export type Page = {
   blocks: Block[];
   tags?: string[];
   folderId?: string | null;
+  /** ISO datetime string from the server — when the page was created. */
+  createdAt?: string;
+  /** ISO datetime string from the server — when the page was last saved. */
+  updatedAt?: string;
 };
 
 // ─── Type guards ─────────────────────────────────────────────────────────────

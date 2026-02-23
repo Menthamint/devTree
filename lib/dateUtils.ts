@@ -45,3 +45,37 @@ export function formatDateLong(date: Date | string): string {
   const d = typeof date === 'string' ? parseLocalDate(date) : date;
   return d.toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' });
 }
+
+/**
+ * Relative time — returns a human-readable string relative to now.
+ * Accepts ISO datetime strings (e.g. from the API) or Date objects.
+ *
+ * Thresholds:
+ *   < 60 s   → "just now"
+ *   < 60 min → "X minutes ago"
+ *   < 24 h   → "X hours ago"
+ *   < 7 days → "X days ago"
+ *   < 30 days → "X weeks ago"
+ *   ≥ 30 days → medium date (e.g. "Feb 15, 2025")
+ *
+ * NOTE: Unlike the other helpers, this function parses ISO timestamp strings
+ * with `new Date()` (not `parseLocalDate`), because the input is a full
+ * datetime string from the server, not a YYYY-MM-DD calendar date.
+ */
+export function formatRelativeTime(date: Date | string): string {
+  const d = typeof date === 'string' ? new Date(date) : date;
+  const diffMs = Date.now() - d.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  const diffHours = Math.floor(diffMin / 60);
+  const diffDays = Math.floor(diffHours / 24);
+  const diffWeeks = Math.floor(diffDays / 7);
+
+  if (diffSec < 60) return 'just now';
+  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+  if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
+  if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
+  if (diffDays < 30) return `${diffWeeks} week${diffWeeks === 1 ? '' : 's'} ago`;
+  // Fall back to medium locale date for anything older than a month
+  return formatDateMedium(d);
+}

@@ -20,6 +20,8 @@ import type { Page } from '@/components/MainContent';
 const pageWithBlocks: Page = {
   id: 'p1',
   title: 'React Hooks',
+  createdAt: '2026-01-10T09:00:00.000Z',
+  updatedAt: '2026-02-20T14:30:00.000Z',
   blocks: [
     {
       id: 'b1',
@@ -27,6 +29,8 @@ const pageWithBlocks: Page = {
       content:
         '<h2>React Hooks</h2><p>React Hooks allow you to use <strong>state</strong> and other React features without writing a class.</p>',
       colSpan: 2,
+      createdAt: '2026-01-10T09:00:00.000Z',
+      updatedAt: '2026-02-20T14:30:00.000Z',
     },
     {
       id: 'b2',
@@ -36,6 +40,8 @@ const pageWithBlocks: Page = {
         language: 'javascript',
       },
       colSpan: 2,
+      createdAt: '2026-01-10T09:05:00.000Z',
+      updatedAt: '2026-01-10T09:05:00.000Z',
     },
     {
       id: 'b3',

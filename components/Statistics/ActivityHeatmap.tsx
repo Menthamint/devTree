@@ -9,8 +9,8 @@ import type { ActivityDay } from './types';
 import { formatDateLong, parseLocalDate } from '@/lib/dateUtils';
 
 interface Props {
-  data: ActivityDay[];
-  loading?: boolean;
+  readonly data: ActivityDay[];
+  readonly loading?: boolean;
 }
 
 // Light mode: neutral empty → progressively darker violet (less=lighter, more=darker)

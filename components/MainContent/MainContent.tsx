@@ -30,6 +30,7 @@ import { useSettingsStore } from '@/lib/settingsStore';
 import { cn } from '@/lib/utils';
 
 import { BlockEditor } from './BlockEditor';
+import { PageMeta } from './PageMeta';
 import { PageTitle } from './PageTitle';
 import type { Block, Page } from './types';
 
@@ -224,6 +225,9 @@ export function MainContent({
                   onChange={onTagsChange}
                 />
               )}
+
+              {/* Creation and last-edit timestamps */}
+              <PageMeta createdAt={page.createdAt} updatedAt={page.updatedAt} />
 
               {/* Block tag filter strip — hidden when tagsPerBlockEnabled is false */}
               {tagsPerBlockEnabled && allBlockTags.length > 0 && (

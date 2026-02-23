@@ -57,8 +57,16 @@ import { CSS } from '@dnd-kit/utilities';
 import { Check, Columns2, GripVertical, Maximize2, Pencil, Plus, Tag, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 
+import { formatDateMedium, formatRelativeTime } from '@/lib/dateUtils';
 import { useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
+
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 import { BlockPicker } from './BlockPicker';
 import type { Block, BlockType } from './types';
@@ -356,6 +364,45 @@ export function BlockWrapper({
        */}
       {showBlockTags && (
         <BlockTagRow tags={block.tags ?? []} onChange={onTagsChange} isEditing={isEditing} />
+      )}
+
+      {/* Block timestamps — fade in on hover in view mode */}
+      {!isEditing && block.updatedAt && (
+        <div className={cn(
+          'flex items-center gap-1 text-[11px] text-muted-foreground/50 sm:opacity-0 sm:transition-opacity sm:group-hover/block:opacity-100',
+          isRight && 'sm:justify-end',
+        )}>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span className="cursor-default">
+                  {t('block.updatedAt', { date: formatRelativeTime(block.updatedAt) })}
+                </span>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">
+                <p>{formatDateMedium(new Date(block.updatedAt))}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          {block.createdAt && block.createdAt !== block.updatedAt && (
+            <>
+              <span aria-hidden>·</span>
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <span className="cursor-default">
+                      {t('block.createdAt', { date: formatRelativeTime(block.createdAt) })}
+                    </span>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    <p>{formatDateMedium(new Date(block.createdAt))}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </>
+          )}
+        </div>
       )}
 
       {/* Block content — rendered via render prop so isEditing/isDragging can be threaded in */}

@@ -123,12 +123,16 @@ erDiagram
     PAGE {
         string id PK
         string title
+        datetime createdAt
+        datetime updatedAt
     }
     BLOCK {
         string id PK
         string type
         BlockContent content
         int colSpan "1 or 2"
+        datetime createdAt
+        datetime updatedAt
     }
     PAGE ||--o{ BLOCK : "has ordered array of"
 ```
@@ -140,6 +144,8 @@ classDiagram
         +BlockType type
         +BlockContent content
         +colSpan?: 1 | 2
+        +createdAt?: string
+        +updatedAt?: string
     }
 
     class BlockType {
@@ -208,6 +214,8 @@ classDiagram
     Block --> WhiteboardBlockContent : "type=whiteboard"
     Block --> LinkBlockContent : "type=link"
 ```
+
+The `createdAt` and `updatedAt` fields are ISO datetime strings forwarded from the Prisma model via `apiBlockToBlock()` / `apiPageToPage()`. They are optional in the frontend type so that optimistically-created blocks (before the server response arrives) are still valid. The page-level timestamps are displayed below the tag bar as relative text ("3 days ago") with a full date tooltip on hover. Block-level timestamps appear as a hover-only micro-line below the block's tag row.
 
 **Why a discriminated union for `BlockContent`?**
 
