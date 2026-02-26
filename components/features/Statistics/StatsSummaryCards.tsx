@@ -165,10 +165,7 @@ function buildTimeCards(
       icon: <PenTool className="text-muted-foreground h-4 w-4" />,
       value: data ? formatDuration(data.totalWritingTimeMs) : null,
       sub1: writingPct !== null ? `${writingPct}% of session time` : 'Actively typing',
-      sub2:
-        data && data.totalWritingTimeMs > 0
-          ? `${formatDuration(browsingTimeMs)} other activity`
-          : null,
+      sub2: browsingTimeMs > 0 ? `${formatDuration(browsingTimeMs)} other activity` : null,
       bar: buildWritingBar(data, writingMilestone),
     },
   ];
@@ -179,7 +176,7 @@ function buildCards(data: SummaryData | null): CardConfig[] {
     data && data.totalPages > 0 ? (data.totalBlocks / data.totalPages).toFixed(1) : null;
   const writingPct =
     data && data.totalSessionTimeMs > 0
-      ? Math.round((data.totalWritingTimeMs / data.totalSessionTimeMs) * 100)
+      ? Math.min(100, Math.round((data.totalWritingTimeMs / data.totalSessionTimeMs) * 100))
       : null;
   const browsingTimeMs = data ? Math.max(0, data.totalSessionTimeMs - data.totalWritingTimeMs) : 0;
   const noteMilestone = data ? milestoneProgress(data.totalPages, NOTE_MILESTONES) : null;

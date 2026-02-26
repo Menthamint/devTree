@@ -59,9 +59,9 @@ export async function GET(req: NextRequest) {
       get(d).contentEvents += 1;
     }
 
-    // Build a full array covering the requested range (fill missing days with zeros)
+    // Build a full array covering the requested range, including today.
     const result = [];
-    for (let i = 0; i < days; i++) {
+    for (let i = 0; i <= days; i++) {
       const d = new Date(since);
       d.setDate(d.getDate() + i);
       const key = d.toISOString().split('T')[0];

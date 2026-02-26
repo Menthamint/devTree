@@ -15,11 +15,18 @@ interface Props {
   forceShow?: boolean;
 }
 
-// ─── Daily messages ────────────────────────────────────────────────────────
-// One message is shown per day, rotating through the list based on the day-of-year.
-// They are authored messages, not AI-generated — written by the DevTree team to
-// reflect real learning milestones and habits.
-const DAILY_MESSAGES = [
+// ─── DB message shape ──────────────────────────────────────────────────────
+interface DbMessage {
+  id: string;
+  type: 'daily' | 'achievement';
+  achievementId: string | null;
+  text: string;
+  emoji: string;
+}
+
+// ─── Local fallback messages ────────────────────────────────────────────────
+// Used when the DB hasn't been seeded yet or the API is unreachable.
+const FALLBACK_DAILY: { text: string; emoji: string }[] = [
   { text: 'Every note you write is a thought made permanent.', emoji: '✍️' },
   { text: "Knowledge compounds just like interest. You're investing in yourself.", emoji: '📈' },
   { text: 'The act of writing clarifies thinking. Keep going.', emoji: '💡' },
@@ -56,8 +63,8 @@ const DAILY_MESSAGES = [
 interface AchievementDef {
   id: string;
   predicate: (d: SummaryData) => boolean;
-  message: string;
-  emoji: string;
+  fallbackMessage: string;
+  fallbackEmoji: string;
   icon: React.ReactNode;
   type: 'milestone' | 'note';
 }
@@ -66,65 +73,67 @@ const ACHIEVEMENT_BANNERS: AchievementDef[] = [
   {
     id: 'streak-100',
     predicate: (d) => d.streakCurrent >= 100,
-    message: '100-day streak! You are a true learning champion.',
-    emoji: '🏆',
+    fallbackMessage: '100-day streak! You are a true learning champion.',
+    fallbackEmoji: '🏆',
     icon: <Trophy className="h-5 w-5 text-amber-500" />,
     type: 'milestone',
   },
   {
     id: 'streak-30',
     predicate: (d) => d.streakCurrent >= 30,
-    message: "30 days in a row — you're unstoppable.",
-    emoji: '⚡',
+    fallbackMessage: "30 days in a row — you're unstoppable.",
+    fallbackEmoji: '⚡',
     icon: <Zap className="h-5 w-5 text-violet-500" />,
     type: 'milestone',
   },
   {
     id: 'streak-7',
     predicate: (d) => d.streakCurrent >= 7,
-    message: '7-day streak! Consistency is the superpower of learners.',
-    emoji: '🔥',
+    fallbackMessage: '7-day streak! Consistency is the superpower of learners.',
+    fallbackEmoji: '🔥',
     icon: <Star className="h-5 w-5 text-orange-500" />,
     type: 'milestone',
   },
   {
     id: '50-pages',
     predicate: (d) => d.totalPages >= 50,
-    message: '50 notes — your second brain is growing strong.',
-    emoji: '🧠',
+    fallbackMessage: '50 notes — your second brain is growing strong.',
+    fallbackEmoji: '🧠',
     icon: <BookOpen className="h-5 w-5 text-emerald-500" />,
     type: 'note',
   },
   {
     id: '10-pages',
     predicate: (d) => d.totalPages >= 10,
-    message: "10 notes in! You're building a real knowledge base.",
-    emoji: '📚',
+    fallbackMessage: "10 notes in! You're building a real knowledge base.",
+    fallbackEmoji: '📚',
     icon: <BookOpen className="h-5 w-5 text-blue-500" />,
     type: 'note',
   },
   {
     id: 'first-page',
     predicate: (d) => d.totalPages >= 1,
-    message: "You've created your first note! The journey of a thousand pages begins with one.",
-    emoji: '🌱',
+    fallbackMessage:
+      "You've created your first note! The journey of a thousand pages begins with one.",
+    fallbackEmoji: '🌱',
     icon: <Sparkles className="h-5 w-5 text-green-500" />,
     type: 'note',
   },
 ];
 
 // ─── Persistence logic ─────────────────────────────────────────────────────
-const STORAGE_KEY = 'devtree-motivation-banner-date';
+const STORAGE_KEY_DAILY = 'devtree-motivation-banner-date';
+const STORAGE_KEY_ACHIEVEMENTS = 'devtree-seen-achievements';
 
 function getTodayKey(): string {
   return new Date().toISOString().slice(0, 10);
 }
 
 function wasShownToday(): boolean {
-  if (typeof window === 'undefined') return false;
+  if (typeof globalThis.window === 'undefined') return false;
   try {
-    if (sessionStorage.getItem(STORAGE_KEY) === getTodayKey()) return true;
-    if (localStorage.getItem(STORAGE_KEY) === getTodayKey()) return true;
+    if (sessionStorage.getItem(STORAGE_KEY_DAILY) === getTodayKey()) return true;
+    if (localStorage.getItem(STORAGE_KEY_DAILY) === getTodayKey()) return true;
   } catch {
     /* ignore private-mode storage errors */
   }
@@ -134,19 +143,42 @@ function wasShownToday(): boolean {
 function markShownToday(): void {
   try {
     const today = getTodayKey();
-    sessionStorage.setItem(STORAGE_KEY, today);
-    localStorage.setItem(STORAGE_KEY, today);
+    sessionStorage.setItem(STORAGE_KEY_DAILY, today);
+    localStorage.setItem(STORAGE_KEY_DAILY, today);
   } catch {
     /* ignore */
   }
 }
 
-/** Returns 0–364 index stable per calendar day. Used to cycle daily messages. */
-function dayOfYearIndex(): number {
+/** Returns the set of achievement IDs the user has permanently dismissed. */
+function getSeenAchievements(): Set<string> {
+  if (typeof globalThis.window === 'undefined') return new Set();
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY_ACHIEVEMENTS);
+    if (raw) return new Set(JSON.parse(raw) as string[]);
+  } catch {
+    /* ignore */
+  }
+  return new Set();
+}
+
+/** Permanently marks an achievement as seen so it never shows again. */
+function markAchievementSeen(id: string): void {
+  try {
+    const seen = getSeenAchievements();
+    seen.add(id);
+    localStorage.setItem(STORAGE_KEY_ACHIEVEMENTS, JSON.stringify([...seen]));
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Returns 0-based index stable per calendar day, modulo the pool size. */
+function dayOfYearIndex(poolSize: number): number {
   const now = new Date();
   const start = new Date(now.getFullYear(), 0, 0);
   const diff = now.getTime() - start.getTime();
-  return Math.floor(diff / 86_400_000) % DAILY_MESSAGES.length;
+  return Math.floor(diff / 86_400_000) % poolSize;
 }
 
 // ─── Celebration particles ─────────────────────────────────────────────────
@@ -157,7 +189,7 @@ function CelebrationParticles() {
     <div aria-hidden className="pointer-events-none absolute inset-0 overflow-hidden rounded-xl">
       {PARTICLES.map((p, i) => (
         <span
-          key={i}
+          key={p}
           className="absolute text-lg"
           style={{
             left: `${10 + i * 14}%`,
@@ -176,10 +208,10 @@ function CelebrationParticles() {
 function BannerLabel({
   isMilestone,
   hasAchievement,
-}: {
+}: Readonly<{
   isMilestone: boolean;
   hasAchievement: boolean;
-}) {
+}>) {
   if (isMilestone) {
     return (
       <span className="text-xs font-semibold tracking-wide text-amber-600 uppercase dark:text-amber-400">
@@ -198,38 +230,80 @@ function BannerLabel({
 }
 
 // ─── Banner component ──────────────────────────────────────────────────────
-export function MotivationBanner({ data, forceShow = false }: Props) {
+export function MotivationBanner({ data, forceShow = false }: Readonly<Props>) {
+  // ── Fetch messages from DB ────────────────────────────────────────────────
+  const [dbMessages, setDbMessages] = useState<DbMessage[]>([]);
+  useEffect(() => {
+    fetch('/api/stats/motivation')
+      .then((r) => r.ok ? r.json() as Promise<DbMessage[]> : Promise.resolve([]))
+      .then((msgs) => { if (msgs.length > 0) setDbMessages(msgs); })
+      .catch(() => { /* fallback to local messages silently */ });
+  }, []);
+
+  // Derive the daily pool — prefer DB, fall back to local array.
+  const dailyPool = React.useMemo(() => {
+    const db = dbMessages.filter((m) => m.type === 'daily');
+    return db.length > 0 ? db : FALLBACK_DAILY;
+  }, [dbMessages]);
+
+  // Resolve text/emoji for an achievement from DB if available.
+  const resolveAchievement = React.useCallback(
+    (def: AchievementDef) => {
+      const db = dbMessages.find(
+        (m) => m.type === 'achievement' && m.achievementId === def.id,
+      );
+      return {
+        message: db?.text ?? def.fallbackMessage,
+        emoji: db?.emoji ?? def.fallbackEmoji,
+      };
+    },
+    [dbMessages],
+  );
+
+  // Find the highest-priority achievement that hasn't been permanently dismissed.
+  const achievement = React.useMemo(() => {
+    if (!data) return null;
+    const seen = forceShow ? new Set<string>() : getSeenAchievements();
+    return ACHIEVEMENT_BANNERS.find((b) => b.predicate(data) && !seen.has(b.id)) ?? null;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, forceShow]);
+
+  // Daily messages are shown once per calendar day.
   const [shownToday] = useState<boolean>(() => (forceShow ? false : wasShownToday()));
+
+  const shouldShow = !!achievement || !shownToday;
+
   const [dismissed, setDismissed] = useState(false);
   const [visible, setVisible] = useState(false);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Trigger entrance animation after mount
   useEffect(() => {
-    if (!shownToday && !dismissed) {
+    if (shouldShow && !dismissed) {
       timerRef.current = setTimeout(() => setVisible(true), 50);
     }
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [shownToday, dismissed]);
+  }, [shouldShow, dismissed]);
 
-  if (!data || shownToday || dismissed) return null;
+  if (!data || !shouldShow || dismissed) return null;
 
-  // Find the highest-priority achievement (array is ordered highest → lowest priority).
-  // No reverse needed: first match is the most specific achievement unlocked.
-  const achievement = ACHIEVEMENT_BANNERS.find((b) => b.predicate(data));
-  const dailyMsg = DAILY_MESSAGES[dayOfYearIndex()];
+  const dailyIdx = dayOfYearIndex(dailyPool.length);
+  const dailyMsg = dailyPool[dailyIdx];
 
   const isMilestone = !!achievement && achievement.type === 'milestone';
-  const emoji = achievement ? achievement.emoji : dailyMsg.emoji;
-  const message = achievement ? achievement.message : dailyMsg.text;
+  const resolved = achievement ? resolveAchievement(achievement) : null;
+  const emoji = resolved?.emoji ?? dailyMsg.emoji;
+  const message = resolved?.message ?? dailyMsg.text;
   const icon = achievement ? achievement.icon : <Sparkles className="h-4 w-4 text-violet-500" />;
 
   const handleDismiss = () => {
-    markShownToday();
+    if (achievement) {
+      markAchievementSeen(achievement.id);
+    } else {
+      markShownToday();
+    }
     setVisible(false);
-    // Give the exit animation time before removing from DOM
     setTimeout(() => setDismissed(true), 300);
   };
 
@@ -240,39 +314,33 @@ export function MotivationBanner({ data, forceShow = false }: Props) {
       className={[
         'relative overflow-hidden rounded-xl border shadow-sm transition-all duration-300',
         isMilestone
-          ? 'border-amber-500/30 bg-gradient-to-r from-amber-500/10 via-orange-500/5 to-yellow-500/10'
-          : 'border-violet-500/20 bg-gradient-to-r from-violet-500/5 via-purple-500/5 to-indigo-500/5',
+          ? 'border-amber-500/30 bg-linear-to-r from-amber-500/10 via-orange-500/5 to-yellow-500/10'
+          : 'border-violet-500/20 bg-linear-to-r from-violet-500/5 via-purple-500/5 to-indigo-500/5',
         visible ? 'translate-y-0 opacity-100' : 'translate-y-3 opacity-0',
       ].join(' ')}
     >
       {isMilestone && <CelebrationParticles />}
 
       <div className="relative flex items-start gap-3 p-4 pr-10">
-        {/* Icon */}
         <div className="mt-0.5 shrink-0">{icon}</div>
 
-        {/* Body */}
         <div className="min-w-0 flex-1">
-          {/* Label row */}
           <div className="mb-1 flex items-center gap-1.5">
             <BannerLabel isMilestone={isMilestone} hasAchievement={!!achievement} />
           </div>
 
-          {/* Message */}
           <p className="text-foreground text-sm leading-snug font-medium">
             <span className="mr-1.5">{emoji}</span>
             {message}
           </p>
 
-          {/* Source note */}
           <p className="text-muted-foreground/60 mt-1.5 text-xs">
             {achievement
               ? 'Unlocked based on your learning progress ✨'
-              : `Message ${dayOfYearIndex() + 1} of ${DAILY_MESSAGES.length} — rotates daily based on your calendar ✨`}
+              : `Daily motivation · ${dailyIdx + 1} of ${dailyPool.length} — changes each day ✨`}
           </p>
         </div>
 
-        {/* Dismiss */}
         <button
           onClick={handleDismiss}
           aria-label="Dismiss"

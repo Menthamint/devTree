@@ -29,13 +29,15 @@ interface Props {
   loading?: boolean;
 }
 
+// Explicit hex colours — CSS custom properties are not reliably resolved
+// inside Recharts SVG elements, causing invisible bars on dark backgrounds.
 const PALETTE = [
-  'hsl(var(--primary))',
-  'hsl(217 91% 60%)',
-  'hsl(142 76% 36%)',
-  'hsl(38 92% 50%)',
-  'hsl(280 68% 60%)',
-  'hsl(355 78% 56%)',
+  '#8b5cf6', // violet-500
+  '#3b82f6', // blue-500
+  '#10b981', // emerald-500
+  '#f59e0b', // amber-500
+  '#a855f7', // purple-500
+  '#ef4444', // red-500
 ];
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

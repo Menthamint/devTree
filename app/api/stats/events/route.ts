@@ -89,6 +89,30 @@ export async function POST(req: NextRequest) {
             break;
           }
 
+          case 'WRITING_SESSION_START':
+            if (ev.pageId) {
+              await tx.writingSession.create({
+                data: { userId, pageId: ev.pageId, folderId: ev.folderId ?? null, startedAt: ts },
+              });
+            }
+            break;
+
+          case 'WRITING_SESSION_END': {
+            if (ev.pageId) {
+              const openSession = await tx.writingSession.findFirst({
+                where: { userId, pageId: ev.pageId, endedAt: null },
+                orderBy: { startedAt: 'desc' },
+              });
+              if (openSession) {
+                await tx.writingSession.update({
+                  where: { id: openSession.id },
+                  data: { endedAt: ts, durationMs: ev.durationMs ?? null },
+                });
+              }
+            }
+            break;
+          }
+
           case 'CONTENT_EVENT':
             if (ev.type) {
               await tx.contentEvent.create({

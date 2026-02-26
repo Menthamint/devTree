@@ -6,7 +6,6 @@ import {
   Area,
   AreaChart,
   CartesianGrid,
-  Legend,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -32,52 +31,120 @@ interface Props {
 
 type View = '30' | '90';
 
-// Use explicit hex values — CSS custom properties (oklch) are not reliably
-// resolved by Recharts SVG in all browsers / render environments.
+// Explicit hex colours — CSS custom properties are not reliably resolved inside
+// Recharts SVG elements in all browsers / render environments.
 const COLORS = {
-  sessionMs: '#3b82f6', // blue-500 — visible on both light and dark backgrounds
-  contentEvents: '#8b5cf6', // violet-500
+  session: '#3b82f6', // blue-500
+  events: '#8b5cf6', // violet-500
 };
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function CustomTooltip({ active, payload }: any) {
+const TICK_STYLE = { fontSize: 11, fill: '#6b7280' }; // gray-500, readable on dark + light
+
+// ─── Shared tooltip ──────────────────────────────────────────────────────────
+interface TooltipProps {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  active?: boolean;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  payload?: any[];
+  isTime?: boolean;
+}
+
+function ChartTooltip({ active, payload, isTime }: TooltipProps) {
   if (!active || !payload?.length) return null;
-  // rawDate is YYYY-MM-DD stored alongside the display label
   const rawDate: string | undefined = payload[0]?.payload?.rawDate as string | undefined;
   const dateLabel = rawDate ? formatDateLong(parseLocalDate(rawDate)) : '';
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const entry: any = payload[0];
   return (
     <div className="bg-background rounded-lg border p-3 text-sm shadow-sm">
       {dateLabel && <p className="text-foreground mb-1.5 font-semibold">{dateLabel}</p>}
-      {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      {payload.map((entry: any) => (
-        <div key={entry.name} className="flex items-center gap-2">
-          <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
-          <span className="text-muted-foreground">{entry.name}:</span>
-          <span className="font-medium">
-            {entry.name === 'Session time'
-              ? formatDuration(entry.value as number)
-              : (entry.value as number)}
-          </span>
-        </div>
-      ))}
+      <div className="flex items-center gap-2">
+        <span className="h-2 w-2 rounded-full" style={{ background: entry.color }} />
+        <span className="text-muted-foreground">{entry.name}:</span>
+        <span className="font-medium">
+          {isTime ? formatDuration(entry.value as number) : (entry.value as number)}
+        </span>
+      </div>
     </div>
   );
 }
 
+// ─── Single mini-chart ────────────────────────────────────────────────────────
+interface MiniChartProps {
+  data: ReturnType<typeof buildDisplayData>;
+  title: string;
+  dataKey: string;
+  color: string;
+  gradId: string;
+  tickInterval: number;
+  isTime?: boolean;
+}
+
+function buildDisplayData(sliced: ActivityDay[]) {
+  return sliced.map((d) => ({
+    rawDate: d.date,
+    label: formatDateShort(parseLocalDate(d.date)),
+    sessionMs: d.sessionMs,
+    contentEvents: d.contentEvents,
+  }));
+}
+
+function MiniChart({ data, title, dataKey, color, gradId, tickInterval, isTime }: MiniChartProps) {
+  // Time chart needs a wider Y-axis to fit labels like "16h 10m".
+  // Both charts need bottom margin so date labels aren't clipped.
+  const yAxisWidth = isTime ? 58 : 30;
+  const leftMargin = isTime ? 4 : -10;
+  return (
+    <div>
+      <p className="text-muted-foreground mb-2 text-xs font-medium">{title}</p>
+      <ResponsiveContainer width="100%" height={180}>
+        <AreaChart data={data} margin={{ top: 18, right: 8, left: leftMargin, bottom: 16 }}>
+          <defs>
+            <linearGradient id={gradId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={color} stopOpacity={0.25} />
+              <stop offset="95%" stopColor={color} stopOpacity={0} />
+            </linearGradient>
+          </defs>
+          <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+          <XAxis
+            dataKey="label"
+            tick={TICK_STYLE}
+            tickLine={false}
+            axisLine={false}
+            interval={tickInterval}
+          />
+          <YAxis
+            tick={TICK_STYLE}
+            tickLine={false}
+            axisLine={false}
+            tickFormatter={isTime ? (v: number) => (v === 0 ? '0' : formatDuration(v)) : undefined}
+            width={yAxisWidth}
+          />
+          <Tooltip content={<ChartTooltip isTime={isTime} />} />
+          <Area
+            type="monotone"
+            dataKey={dataKey}
+            name={title}
+            stroke={color}
+            fill={`url(#${gradId})`}
+            strokeWidth={2}
+            dot={false}
+            activeDot={{ r: 4 }}
+          />
+        </AreaChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+// ─── Main export ──────────────────────────────────────────────────────────────
 export function DailyActivityChart({ data, loading }: Props) {
   const [view, setView] = useState<View>('30');
 
   const sliced = data.slice(-Number(view));
-
   // Tick density: show ~7-8 labels regardless of window size
   const tickInterval = view === '30' ? 3 : 9;
-
-  const displayData = sliced.map((d) => ({
-    rawDate: d.date, // kept for full-date tooltip
-    label: formatDateShort(parseLocalDate(d.date)), // e.g. "Feb 15"
-    'Session time': d.sessionMs,
-    'Content events': d.contentEvents,
-  }));
+  const displayData = buildDisplayData(sliced);
 
   return (
     <Card>
@@ -102,63 +169,29 @@ export function DailyActivityChart({ data, loading }: Props) {
           ))}
         </div>
       </CardHeader>
-      <CardContent className="h-64">
+      <CardContent>
         {loading ? (
-          <div className="bg-muted h-full w-full animate-pulse rounded" />
+          <div className="bg-muted h-48 w-full animate-pulse rounded" />
         ) : (
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={displayData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-              <defs>
-                <linearGradient id="sessionGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS.sessionMs} stopOpacity={0.25} />
-                  <stop offset="95%" stopColor={COLORS.sessionMs} stopOpacity={0} />
-                </linearGradient>
-                <linearGradient id="eventsGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor={COLORS.contentEvents} stopOpacity={0.25} />
-                  <stop offset="95%" stopColor={COLORS.contentEvents} stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" className="stroke-border" vertical={false} />
-              <XAxis
-                dataKey="label"
-                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={false}
-                axisLine={false}
-                interval={tickInterval}
-              />
-              <YAxis
-                tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
-                tickLine={false}
-                axisLine={false}
-              />
-              <Tooltip content={<CustomTooltip />} />
-              <Legend
-                iconType="circle"
-                iconSize={8}
-                formatter={(value) => (
-                  <span className="text-muted-foreground text-xs">{value}</span>
-                )}
-              />
-              <Area
-                type="monotone"
-                dataKey="Session time"
-                stroke={COLORS.sessionMs}
-                fill="url(#sessionGrad)"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-              <Area
-                type="monotone"
-                dataKey="Content events"
-                stroke={COLORS.contentEvents}
-                fill="url(#eventsGrad)"
-                strokeWidth={2}
-                dot={false}
-                activeDot={{ r: 4 }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
+          <div className="grid grid-cols-2 gap-6">
+            <MiniChart
+              data={displayData}
+              title="Session Time"
+              dataKey="sessionMs"
+              color={COLORS.session}
+              gradId="sessionGrad"
+              tickInterval={tickInterval}
+              isTime
+            />
+            <MiniChart
+              data={displayData}
+              title="Content Events"
+              dataKey="contentEvents"
+              color={COLORS.events}
+              gradId="eventsGrad"
+              tickInterval={tickInterval}
+            />
+          </div>
         )}
       </CardContent>
     </Card>

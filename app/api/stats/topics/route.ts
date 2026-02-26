@@ -15,15 +15,23 @@ export async function GET(req: NextRequest) {
         where: { ownerId: userId },
         select: { id: true, name: true },
       }),
+      // Include visits without a stored folderId — we'll resolve them via the
+      // page's current folderId below (handles legacy rows from before folder
+      // tracking was added).
       prisma.pageVisit.findMany({
-        where: { userId, folderId: { not: null }, durationMs: { not: null } },
-        select: { folderId: true, durationMs: true },
+        where: { userId, durationMs: { not: null } },
+        select: { folderId: true, durationMs: true, pageId: true },
       }),
       prisma.page.findMany({
         where: { ownerId: userId },
-        select: { folderId: true },
+        select: { id: true, folderId: true },
       }),
     ]);
+
+    // Build a quick lookup of pageId → folderId from the current page state.
+    const pageFolderMap = new Map<string, string>(
+      pages.flatMap((p) => (p.folderId ? [[p.id, p.folderId]] : [])),
+    );
 
     // Aggregate time and page count per folder
     const byFolder = new Map<
@@ -38,7 +46,9 @@ export async function GET(req: NextRequest) {
     };
 
     for (const v of visits) {
-      if (v.folderId) get(v.folderId).timeSpentMs += v.durationMs ?? 0;
+      // Prefer the folderId stored on the visit; fall back to the page's current folder.
+      const fid = v.folderId ?? (v.pageId ? (pageFolderMap.get(v.pageId) ?? null) : null);
+      if (fid) get(fid).timeSpentMs += v.durationMs ?? 0;
     }
 
     for (const p of pages) {

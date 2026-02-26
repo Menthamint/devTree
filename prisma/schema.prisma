@@ -31,10 +31,11 @@ model User {
   libraries UserLibrary[]
 
   // Statistics relations
-  userSessions   UserSession[]
-  pageVisits     PageVisit[]
-  contentEvents  ContentEvent[]
-  streak         UserStreak?
+  userSessions    UserSession[]
+  pageVisits      PageVisit[]
+  writingSessions WritingSession[]
+  contentEvents   ContentEvent[]
+  streak          UserStreak?
 }
 
 // ─── Excalidraw library storage ───────────────────────────────────────────────
@@ -204,6 +205,39 @@ model ContentEvent {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, timestamp])
+}
+
+/// Tracks time the user spent actively in edit mode (pen-to-paper writing time).
+/// Separate from PageVisit which records total time on a page regardless of mode.
+model WritingSession {
+  id         String    @id @default(cuid())
+  userId     String
+  pageId     String?   // nullable: page may have been deleted
+  folderId   String?
+  startedAt  DateTime  @default(now())
+  endedAt    DateTime?
+  durationMs Int?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, startedAt])
+}
+
+/// Admin-managed motivation and achievement messages shown on the statistics page.
+/// Admins can add, edit, disable, or reorder messages without touching code.
+model MotivationMessage {
+  id            String   @id @default(cuid())
+  /// "daily" = rotates once per day | "achievement" = unlocked by a milestone
+  type          String
+  /// Matches an ACHIEVEMENT_BANNERS id on the client when type = "achievement".
+  achievementId String?
+  text          String
+  emoji         String
+  active        Boolean  @default(true)
+  /// Lower order = shown first within the same type.
+  order         Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }
 
 /// One row per user — tracks streak and achievements.

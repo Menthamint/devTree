@@ -8,7 +8,7 @@
  */
 import '@testing-library/jest-dom/vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MotivationBanner } from './MotivationBanner';
 import { StatsSummaryCards } from './StatsSummaryCards';
@@ -44,6 +44,14 @@ describe('MotivationBanner', () => {
     // Reset storage between tests so dismissed-today state is clear.
     localStorage.clear();
     sessionStorage.clear();
+    // Stub fetch so the DB motivation API call resolves to an empty array
+    // (component falls back to local hardcoded messages) and doesn't produce
+    // unhandled AbortErrors when the happy-dom environment tears down.
+    vi.stubGlobal('fetch', () => Promise.resolve({ ok: true, json: () => Promise.resolve([]) }));
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('renders nothing when data is null', async () => {
@@ -123,15 +131,16 @@ describe('MotivationBanner', () => {
   it('shows the source explanation text', async () => {
     render(<MotivationBanner data={newUser} forceShow />);
     await waitFor(() => {
-      // Footer source note contains "rotates daily"
-      expect(screen.getByText(/rotates daily/i)).toBeInTheDocument();
+      // Footer source note — daily messages say "changes each day"
+      expect(screen.getByText(/changes each day/i)).toBeInTheDocument();
     });
   });
 
   it('does NOT render when already dismissed today (no forceShow)', async () => {
-    // Mark as shown today via localStorage
+    // Mark as shown today via localStorage. Use newUser so no achievement can
+    // override the "shown today" guard (newUser has 0 pages and 0 streak).
     localStorage.setItem('devtree-motivation-banner-date', new Date().toISOString().slice(0, 10));
-    render(<MotivationBanner data={base} />);
+    render(<MotivationBanner data={newUser} />);
     await act(async () => {});
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });

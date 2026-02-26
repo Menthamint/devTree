@@ -46,6 +46,21 @@ export interface PageVisitEndEvent {
   durationMs: number;
 }
 
+export interface WritingSessionStartEvent {
+  kind: 'WRITING_SESSION_START';
+  pageId: string;
+  folderId?: string;
+  timestamp: string;
+}
+
+export interface WritingSessionEndEvent {
+  kind: 'WRITING_SESSION_END';
+  pageId: string;
+  folderId?: string;
+  timestamp: string;
+  durationMs: number;
+}
+
 export interface ContentEventPayload {
   kind: 'CONTENT_EVENT';
   type: ContentEventType;
@@ -60,6 +75,8 @@ export type StatEvent =
   | SessionEndEvent
   | PageVisitStartEvent
   | PageVisitEndEvent
+  | WritingSessionStartEvent
+  | WritingSessionEndEvent
   | ContentEventPayload;
 
 // ─── Store ────────────────────────────────────────────────────────────────────

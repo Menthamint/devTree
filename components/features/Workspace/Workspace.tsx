@@ -30,6 +30,7 @@ import { useI18n } from '@/lib/i18n';
 import { getLastNotebookPageId, setLastNotebookPageId } from '@/lib/notebookPageMemory';
 import { useSettingsStore } from '@/lib/settingsStore';
 import { usePageTracking } from '@/lib/usePageTracking';
+import { useWritingTracking } from '@/lib/hooks/useWritingTracking';
 import { cn } from '@/lib/utils';
 
 import { buildTreeDataWithActions } from './buildTreeData';
@@ -149,6 +150,11 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
     [activePageId, pages],
   );
   usePageTracking({ pageId: activePageId ?? undefined, folderId: activeFolderIdForTracking });
+  useWritingTracking({
+    isEditMode: saveLogic.isEditMode,
+    pageId: activePageId ?? undefined,
+    folderId: activeFolderIdForTracking,
+  });
 
   // ─── Derived values ──────────────────────────────────────────────────────
   const activePage = useMemo(

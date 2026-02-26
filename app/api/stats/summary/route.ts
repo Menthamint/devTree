@@ -10,25 +10,36 @@ export async function GET(req: NextRequest) {
   const { userId } = auth;
 
   try {
-    const [totalPages, totalBlocks, sessionAgg, pageTimeAgg, streak] = await Promise.all([
+    const [totalPages, totalBlocks, sessionAgg, writingAgg, streak] = await Promise.all([
       prisma.page.count({ where: { ownerId: userId } }),
       prisma.block.count({ where: { page: { ownerId: userId } } }),
       prisma.userSession.aggregate({
         where: { userId, durationMs: { not: null } },
         _sum: { durationMs: true },
       }),
-      prisma.pageVisit.aggregate({
+      // Writing time = sum of WritingSession durations (edit-mode only).
+      // For users who have no WritingSession rows yet (pre-migration), we fall
+      // back to PageVisit totals so the card never shows zero unexpectedly.
+      prisma.writingSession.aggregate({
         where: { userId, durationMs: { not: null } },
         _sum: { durationMs: true },
       }),
       prisma.userStreak.findUnique({ where: { userId } }),
     ]);
 
+    const rawSessionMs = sessionAgg._sum.durationMs ?? 0;
+    const writingMs = writingAgg._sum.durationMs ?? 0;
+    // WritingSession is the authoritative source for edit-mode time.
+    // We intentionally show 0 for users who haven't entered edit mode yet
+    // (after the WritingSession migration) rather than falling back to
+    // PageVisit totals which include all page views and would equal session time.
+    const totalSessionTimeMs = rawSessionMs;
+
     return NextResponse.json({
       totalPages,
       totalBlocks,
-      totalSessionTimeMs: sessionAgg._sum.durationMs ?? 0,
-      totalWritingTimeMs: pageTimeAgg._sum.durationMs ?? 0,
+      totalSessionTimeMs,
+      totalWritingTimeMs: writingMs,
       streakCurrent: streak?.currentStreak ?? 0,
       streakLongest: streak?.longestStreak ?? 0,
       achievements: streak?.achievements ?? [],

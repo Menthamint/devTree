@@ -245,6 +245,91 @@ async function main() {
     apiPage.title,
     gettingStartedPage.title,
   );
+
+  // ── Motivation messages ───────────────────────────────────────────────────
+  // Idempotent: only insert the seed rows when the table is empty so a
+  // re-seed does not wipe admin-added messages.
+  const existingCount = await prisma.motivationMessage.count();
+  if (existingCount === 0) {
+    const dailyMessages = [
+      { text: 'Every note you write is a thought made permanent.', emoji: '✍️' },
+      { text: "Knowledge compounds just like interest. You're investing in yourself.", emoji: '📈' },
+      { text: 'The act of writing clarifies thinking. Keep going.', emoji: '💡' },
+      { text: 'Small, consistent steps outperform long occasional bursts.', emoji: '🐢' },
+      { text: "Your notes today are the shortcuts you'll thank yourself for tomorrow.", emoji: '🗺️' },
+      { text: "A second brain starts with a single note. You've already started.", emoji: '🧠' },
+      { text: 'Deep work leaves a trace. Your blocks are proof.', emoji: '🔬' },
+      { text: 'Reviewing old notes once is worth writing them ten times.', emoji: '🔁' },
+      { text: "Curiosity is a muscle. You're exercising it right now.", emoji: '💪' },
+      { text: 'The best time to document something is right now.', emoji: '⏱️' },
+      { text: 'Connecting ideas is the highest form of learning.', emoji: '🕸️' },
+      { text: 'Great notes are great questions in disguise.', emoji: '❓' },
+      { text: "You don't have to remember everything — your notes do.", emoji: '📦' },
+      { text: "Progress is invisible until suddenly it isn't.", emoji: '🌅' },
+      { text: 'Structured thinking starts with structured notes.', emoji: '🏗️' },
+      { text: 'Each block you write is a brick in your knowledge base.', emoji: '🧱' },
+      { text: "The learner's advantage: you never stop improving.", emoji: '🎓' },
+      { text: "Document the 'why' as much as the 'how'.", emoji: '🗺️' },
+      { text: "What you write today, you'll understand better next week.", emoji: '📆' },
+      { text: 'Habits beat motivation. Your streak is proof of that.', emoji: '🔥' },
+      { text: 'Consistency is the compound interest of personal growth.', emoji: '📊' },
+      { text: 'Your notes are your thinking made visible.', emoji: '👁️' },
+      { text: 'The best learning tool is the one you actually use.', emoji: '🛠️' },
+      { text: 'Even five minutes of focused writing moves the needle.', emoji: '📍' },
+      { text: 'Capture ideas fast. Refine them later. Ship knowledge today.', emoji: '🚀' },
+      { text: "Writing is thinking. You're doing both right now.", emoji: '🤔' },
+      { text: 'Build in public starts with building in your notes.', emoji: '🏛️' },
+      { text: 'Every expert started by taking notes on the basics.', emoji: '📝' },
+      { text: 'Your knowledge base grows every time you open the app.', emoji: '🌱' },
+      { text: "Today's note is tomorrow's shortcut.", emoji: '⚡' },
+    ];
+
+    const achievementMessages = [
+      {
+        achievementId: 'streak-100',
+        text: '100-day streak! You are a true learning champion.',
+        emoji: '🏆',
+      },
+      {
+        achievementId: 'streak-30',
+        text: "30 days in a row — you're unstoppable.",
+        emoji: '⚡',
+      },
+      {
+        achievementId: 'streak-7',
+        text: '7-day streak! Consistency is the superpower of learners.',
+        emoji: '🔥',
+      },
+      {
+        achievementId: '50-pages',
+        text: '50 notes — your second brain is growing strong.',
+        emoji: '🧠',
+      },
+      {
+        achievementId: '10-pages',
+        text: "10 notes in! You're building a real knowledge base.",
+        emoji: '📚',
+      },
+      {
+        achievementId: 'first-page',
+        text: "You've created your first note! The journey of a thousand pages begins with one.",
+        emoji: '🌱',
+      },
+    ];
+
+    await prisma.motivationMessage.createMany({
+      data: [
+        ...dailyMessages.map((m, i) => ({ type: 'daily', order: i, ...m })),
+        ...achievementMessages.map((m, i) => ({ type: 'achievement', order: i, ...m })),
+      ],
+    });
+    console.log(
+      `Motivation messages seeded: ${dailyMessages.length} daily + ${achievementMessages.length} achievement.`,
+    );
+  } else {
+    console.log(`Motivation messages already present (${existingCount} rows) — skipping seed.`);
+  }
+
   console.log('Seeding complete.');
 }
 
