@@ -16,6 +16,31 @@ async function getOwnedFolder(folderId: string, userId: string) {
   return folder;
 }
 
+function collectDescendantFolderIds(
+  rootFolderId: string,
+  allFolders: Array<{ id: string; parentId: string | null }>,
+): string[] {
+  const byParent = new Map<string | null, string[]>();
+  for (const folder of allFolders) {
+    const siblings = byParent.get(folder.parentId) ?? [];
+    siblings.push(folder.id);
+    byParent.set(folder.parentId, siblings);
+  }
+
+  const queue = [rootFolderId];
+  const result: string[] = [];
+
+  while (queue.length > 0) {
+    const current = queue.shift();
+    if (!current) break;
+    result.push(current);
+    const children = byParent.get(current) ?? [];
+    queue.push(...children);
+  }
+
+  return result;
+}
+
 // ─── PUT /api/folders/[folderId] ──────────────────────────────────────────────
 // Rename or reorder a folder. Body: { name?: string; order?: number }
 
@@ -85,7 +110,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
 }
 
 // ─── DELETE /api/folders/[folderId] ───────────────────────────────────────────
-// Moves all pages in the folder to root (folderId = null), then deletes the folder.
+// Deletes a folder and all nested descendants (folders, pages, and page content).
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   const auth = await requireAuth(req);
@@ -98,19 +123,25 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   }
 
   try {
+    const allUserFolders = await prisma.folder.findMany({
+      where: { ownerId: auth.userId },
+      select: { id: true, parentId: true },
+    });
+    const folderIdsToDelete = collectDescendantFolderIds(folderId, allUserFolders);
+
     await prisma.$transaction([
-      // Move pages to root
-      prisma.page.updateMany({
-        where: { folderId },
-        data: { folderId: null },
+      prisma.page.deleteMany({
+        where: {
+          ownerId: auth.userId,
+          folderId: { in: folderIdsToDelete },
+        },
       }),
-      // Detach child folders (set parentId to null — they become root-level folders)
-      prisma.folder.updateMany({
-        where: { parentId: folderId },
-        data: { parentId: null },
+      prisma.folder.deleteMany({
+        where: {
+          ownerId: auth.userId,
+          id: { in: folderIdsToDelete },
+        },
       }),
-      // Delete the folder
-      prisma.folder.delete({ where: { id: folderId } }),
     ]);
     return new NextResponse(null, { status: 204 });
   } catch (err) {

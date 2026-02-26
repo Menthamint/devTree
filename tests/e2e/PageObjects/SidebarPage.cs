@@ -145,7 +145,10 @@ public class SidebarPage(IPage page)
         // Capture any pre-existing "New folder*" names so we can identify the newly created one.
         var existingNewFolders = await GetExistingNewFolderNamesAsync();
 
+        var createFolderResponse = _page.WaitForResponseAsync(
+            r => r.Url.Contains("/api/folders") && r.Request.Method == "POST" && r.Ok);
         await NewFolderBtn.ClickAsync();
+        await createFolderResponse;
 
         // Wait for a new "New folder*" item to appear that wasn't there before.
         ILocator? newFolderLocator = null;
@@ -364,9 +367,13 @@ public class SidebarPage(IPage page)
         await folderItem.HoverAsync();
 
         // Folders have 4 actions → overflow dropdown with "More actions" trigger.
-        var accordionItem = _page.Locator("aside [data-radix-accordion-item]")
-            .Filter(new LocatorFilterOptions { HasText = folderName });
-        var moreBtn = accordionItem.GetByRole(AriaRole.Button, new() { Name = "More actions", Exact = true });
+        var folderTrigger = _page.Locator("aside [data-radix-accordion-item] > h3 > button")
+            .Filter(new LocatorFilterOptions
+            {
+                Has = _page.GetByText(folderName, new() { Exact = true }),
+            })
+            .First;
+        var moreBtn = folderTrigger.GetByRole(AriaRole.Button, new() { Name = "More actions", Exact = true });
         await moreBtn.WaitForAsync(new() { Timeout = 5_000 });
         await moreBtn.ClickAsync();
 

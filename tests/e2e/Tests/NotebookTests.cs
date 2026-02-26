@@ -152,6 +152,75 @@ public class NotebookTests : E2ETestBase
             .ToBeVisibleAsync();
     }
 
+    [Test]
+    public async Task DeleteFolder_Confirm_RemovesNestedSubfoldersPagesAndContent()
+    {
+        var suffix = Guid.NewGuid().ToString("N")[..6];
+        var parentName = $"Cascade Parent {suffix}";
+        var childName = $"Cascade Child {suffix}";
+        var pageTitle = $"Cascade Page {suffix}";
+
+        await App.Sidebar.CreateFolderAsync(parentName);
+
+        var parentAccordion = Page.Locator("aside [data-radix-accordion-item]")
+            .Filter(new LocatorFilterOptions { HasText = parentName });
+        var parentMore = parentAccordion.GetByRole(AriaRole.Button, new() { Name = "More actions", Exact = true }).First;
+        await parentMore.WaitForAsync(new() { Timeout = 5_000 });
+        await parentMore.ClickAsync();
+
+        var newFolderItem = Page.GetByRole(AriaRole.Menuitem, new() { Name = "New folder", Exact = true });
+        await newFolderItem.WaitForAsync(new() { Timeout = 5_000 });
+        await newFolderItem.ClickAsync();
+
+        // Ensure the parent is expanded so the newly created child row is visible.
+        var parentLabel = Page.Locator("aside").GetByText(parentName, new() { Exact = true }).First;
+        await parentLabel.ClickAsync();
+
+        var createdChild = parentAccordion
+            .GetByText(new System.Text.RegularExpressions.Regex("^New folder(\\s+\\d+)?$"))
+            .First;
+        await createdChild.WaitForAsync(new() { Timeout = 10_000 });
+        await createdChild.DblClickAsync();
+
+        var renameInput = Page.GetByRole(AriaRole.Textbox).Last;
+        await renameInput.WaitForAsync(new() { Timeout = 5_000 });
+        await renameInput.FillAsync(childName);
+        await renameInput.PressAsync("Enter");
+
+        var childAccordion = Page.Locator("aside [data-radix-accordion-item]")
+            .Filter(new LocatorFilterOptions { HasText = childName });
+        var childMore = childAccordion.GetByRole(AriaRole.Button, new() { Name = "More actions", Exact = true }).First;
+        await childMore.WaitForAsync(new() { Timeout = 5_000 });
+        await childMore.ClickAsync();
+
+        var newPageItem = Page.Locator("[role='menuitem']:has-text('New file'), [role='menuitem']:has-text('Новий файл')").First;
+        await newPageItem.WaitForAsync(new() { Timeout = 5_000 });
+        await newPageItem.ClickAsync();
+
+        await App.Sidebar.RenameActivePageTitleAsync(pageTitle);
+
+        await App.Sidebar.DeleteFolderByNameAsync(parentName);
+
+        var dialog = Page.GetByRole(AriaRole.Alertdialog);
+        await Expect(dialog).ToBeVisibleAsync();
+        await Expect(dialog).ToContainTextAsync(
+            new System.Text.RegularExpressions.Regex("Everything inside will be permanently removed\\.|Все всередині буде видалено\\.")
+        );
+
+        await App.Sidebar.ConfirmDeleteDialogAsync();
+
+        var parentFolderRow = Page.Locator("aside [data-radix-accordion-item] > h3 > button")
+            .Filter(new LocatorFilterOptions { Has = Page.GetByText(parentName, new() { Exact = true }) });
+        var childFolderRow = Page.Locator("aside [data-radix-accordion-item] > h3 > button")
+            .Filter(new LocatorFilterOptions { Has = Page.GetByText(childName, new() { Exact = true }) });
+        var pageRow = Page.Locator("aside [role='treeitem']")
+            .Filter(new LocatorFilterOptions { Has = Page.GetByText(pageTitle, new() { Exact = true }) });
+
+        await Expect(parentFolderRow).ToHaveCountAsync(0);
+        await Expect(childFolderRow).ToHaveCountAsync(0);
+        await Expect(pageRow).ToHaveCountAsync(0);
+    }
+
     // ── Create page inside folder ─────────────────────────────────────────────
 
     [Test]
