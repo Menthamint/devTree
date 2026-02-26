@@ -88,9 +88,9 @@ export function DeleteConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           {/* Cancel — safe action, dismisses without side effects */}
-          <AlertDialogCancel>{t('delete.cancel')}</AlertDialogCancel>
+          <AlertDialogCancel data-testid="confirm-delete-cancel">{t('delete.cancel')}</AlertDialogCancel>
           {/* Confirm — destructive action, styled red by AlertDialogAction variant */}
-          <AlertDialogAction onClick={handleConfirm}>
+          <AlertDialogAction data-testid="confirm-delete-confirm" onClick={handleConfirm}>
             {t('delete.delete')}
           </AlertDialogAction>
         </AlertDialogFooter>

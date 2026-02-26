@@ -293,3 +293,47 @@ export function downloadMarkdown(page: Page): void {
   // Revoke the object URL after a tick to free memory
   setTimeout(() => URL.revokeObjectURL(url), 100);
 }
+
+// ─── Tiptap content helpers ───────────────────────────────────────────────────
+
+/**
+ * Walk a Tiptap JSONContent tree and collect all unique inline-tag values.
+ *
+ * Tiptap JSON shape:
+ *   { type: 'doc', content: [{ type: 'paragraph', content: [
+ *     { type: 'text', marks: [{ type: 'inlineTag', attrs: { tag: 'important' } }], text: '...' }
+ *   ]}]}
+ */
+export function extractInlineTagsFromContent(
+  node: Record<string, unknown> | null | undefined,
+): string[] {
+  if (!node) return [];
+  const tags = new Set<string>();
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  function walk(n: any): void {
+    if (!n || typeof n !== 'object') return;
+    // Block-level tags stored in custom node attrs (ChecklistNode, CodeBlockNode, etc.)
+    if (n.attrs && Array.isArray(n.attrs.tags)) {
+      for (const tag of n.attrs.tags) {
+        if (typeof tag === 'string' && tag) tags.add(tag);
+      }
+    }
+    // Inline text marks (inlineTag mark applied via bubble menu)
+    if (Array.isArray(n.marks)) {
+      for (const mark of n.marks) {
+        if (mark?.type === 'inlineTag' && typeof mark?.attrs?.tag === 'string' && mark.attrs.tag) {
+          tags.add(mark.attrs.tag);
+        }
+      }
+    }
+    // Recurse into content
+    if (Array.isArray(n.content)) {
+      for (const child of n.content) walk(child);
+    }
+  }
+
+  walk(node);
+  return Array.from(tags).sort();
+}
+

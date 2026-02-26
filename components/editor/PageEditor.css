@@ -1,0 +1,248 @@
+/* PageEditor.css — global styles for the unified Tiptap page editor */
+
+/* ── Block controls bar (drag handle + + button) ─────────────────────────── */
+
+/*
+ * .drag-handle is created and positioned by tiptap-extension-global-drag-handle.
+ * The library sets style.left/top on it and adds/removes the .hide class.
+ * We render React buttons inside it via createPortal.
+ */
+.drag-handle {
+  position: fixed;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.12s;
+  z-index: 50;
+  /* Shift the bar so its right edge aligns with the content column left edge */
+  transform: translateX(-100%);
+  margin-left: -6px;
+}
+
+/* Remove the default single-icon ::before added by the library */
+.drag-handle::before { content: none !important; }
+
+.drag-handle.hide {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+.drag-handle:not(.hide) {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Inner flex wrapper for our React buttons */
+.block-controls-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1px;
+}
+
+/* Individual control buttons */
+.block-ctrl-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  padding: 0;
+  border: none;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--muted-foreground);
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+  flex-shrink: 0;
+}
+
+.block-ctrl-btn:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.block-ctrl-grip { cursor: grab; }
+.block-ctrl-grip:active { cursor: grabbing; }
+
+/* ── Block action context menu ───────────────────────────────────────────── */
+
+.block-action-menu {
+  position: fixed;
+  z-index: 9999;
+  min-width: 11.5rem;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--popover);
+  padding: 4px;
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.18);
+  /* Entrance animation — scale up from slightly smaller */
+    animation: menu-enter 140ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    transform-origin: top left;
+}
+
+.block-action-menu-sep {
+  margin: 4px 0;
+  border-top: 1px solid hsl(var(--border));
+}
+
+.block-action-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--foreground);
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.block-action-item:hover {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.block-action-item--danger {
+  color: var(--destructive);
+}
+
+.block-action-item--danger:hover {
+  background: color-mix(in oklch, var(--destructive) 12%, transparent);
+  color: var(--destructive);
+}
+
+/* ── Bookmarks ───────────────────────────────────────────────────────────── */
+.tiptap-bookmark {
+  background-color: color-mix(in oklch, var(--primary) 15%, transparent);
+  border-bottom: 2px solid color-mix(in oklch, var(--primary) 60%, transparent);
+  border-radius: 2px;
+  padding-bottom: 1px;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  
+  .tiptap-bookmark:hover {
+    background-color: color-mix(in oklch, var(--primary) 24%, transparent);
+    border-bottom-color: color-mix(in oklch, var(--primary) 85%, transparent);
+}
+
+/* ── Comment marks ───────────────────────────────────────────────────────── */
+[data-comment-id] {
+  background-color: hsl(50 90% 70% / 0.35);
+  border-bottom: 2px solid hsl(50 90% 50% / 0.6);
+  cursor: help;
+  border-radius: 2px;
+  transition: background-color 120ms ease, border-color 120ms ease;
+  }
+  
+  [data-comment-id]:hover {
+    background-color: hsl(50 95% 72% / 0.52);
+    border-bottom-color: hsl(50 92% 45% / 0.85);
+}
+
+/* ── Inline tag marks ────────────────────────────────────────────────────── */
+
+.inline-tag-mark {
+  display: inline;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  font-size: 0.72em;
+  font-weight: 600;
+  background: color-mix(in oklch, var(--primary) 15%, transparent);
+  color: var(--primary);
+  border: 1px solid color-mix(in oklch, var(--primary) 30%, transparent);
+  cursor: default;
+  white-space: nowrap;
+  /* small gap so it doesn't run into surrounding text */
+  margin: 0 1px;
+}
+
+/* ── Inline tag filter highlighting ─────────────────────────────────────── */
+
+/*
+ * When data-filter-tags is set on the ProseMirror element, dim all text and
+ * boost the opacity of .inline-tag-mark elements so tagged runs stand out.
+ * This uses CSS attribute selector; JS sets/removes the attribute.
+ */
+.ProseMirror[data-filter-tags] {
+  color: color-mix(in oklch, var(--muted-foreground) 50%, transparent);
+}
+
+.ProseMirror[data-filter-tags] .inline-tag-mark {
+  opacity: 1;
+  background: color-mix(in oklch, var(--primary) 25%, transparent);
+  color: var(--primary);
+  box-shadow: 0 0 0 1px color-mix(in oklch, var(--primary) 40%, transparent);
+}
+
+/* ── Placeholder ─────────────────────────────────────────────────────────── */
+.page-editor-content .is-empty::before {
+  color: var(--muted-foreground);
+  content: attr(data-placeholder);
+  float: left;
+  height: 0;
+  pointer-events: none;
+}
+
+/* ── Editor content baseline ─────────────────────────────────────────────── */
+.page-editor-content {
+  min-height: 12rem;
+  caret-color: var(--foreground);
+}
+
+.page-editor-content:focus { outline: none; }
+
+/* ── Custom atom nodes — remove Tiptap default selection outline ──────────── */
+.page-editor-content .tiptap-node-selected {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ─────────────────────────────────────────────────────────────────────────── */
+/* Animations & transitions                                                    */
+/* ─────────────────────────────────────────────────────────────────────────── */
+
+/* Menu / picker popup entrance — used by .block-action-menu (both the action
+ * dropdown and the block-picker share this class).                            */
+@keyframes menu-enter {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Atom-node block entrance — applied via @starting-style so it fires only
+ * when the element is first inserted into the DOM (new block added), not on
+ * subsequent re-renders.  Scoped to NodeViewWrapper roots only so that
+ * lightweight text paragraphs appear instantly (better for typing flow).     */
+.page-editor-content [data-node-view-wrapper] {
+  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1),
+    transform 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@starting-style {
+  .page-editor-content [data-node-view-wrapper] {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/* Slash-command suggestion list — same popup feel */
+.tiptap-slash-list {
+  animation: menu-enter 120ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  transform-origin: top left;
+}

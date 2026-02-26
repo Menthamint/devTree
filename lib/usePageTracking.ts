@@ -18,7 +18,7 @@ interface PageTrackingOptions {
 }
 
 /** Emit a content event directly (e.g. from API success callbacks). */
-export function emitContentEvent(opts: {
+function emitContentEvent(opts: {
   type: ContentEventType;
   pageId?: string;
   folderId?: string;

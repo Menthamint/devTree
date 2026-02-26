@@ -93,6 +93,10 @@ export async function POST(req: NextRequest) {
     );
   }
 
+  // All new pages start as unified Tiptap documents (empty doc JSON).
+  // Legacy block-based pages keep content = null (existing rows unchanged).
+  const emptyTiptapDoc = { type: 'doc', content: [] };
+
   try {
     const page = await prisma.page.create({
       data: {
@@ -100,6 +104,7 @@ export async function POST(req: NextRequest) {
         ownerId: userId,
         folderId,
         order,
+        content: emptyTiptapDoc,
       },
       include: { blocks: true },
     });

@@ -39,10 +39,10 @@ public class SidebarPage(IPage page)
     /// <summary>Creates a new page and returns its title locator.</summary>
     public async Task<ILocator> CreatePageAsync(string title = "")
     {
-        var beforeUntitledTitles = await GetUntitledTitlesAsync();
+        // Record the URL before creating so we can detect navigation to the new page.
+        var urlBeforeCreate = _page.Url;
 
-        // Wait for the sidebar to be ready before trying to find the button
-        // Use a longer timeout in case the app is taking time to load
+        // Wait for the sidebar to be fully loaded.
         var sidebar = _page.Locator("aside");
         try
         {
@@ -50,11 +50,10 @@ public class SidebarPage(IPage page)
         }
         catch
         {
-            // If sidebar doesn't appear, wait a bit and hope it loads
             await _page.WaitForTimeoutAsync(2000);
         }
 
-        // Try to click the button with retries
+        // Click the "New page" button with retries.
         var newPageBtn = NewPageBtn;
         for (int i = 0; i < 3; i++)
         {
@@ -69,28 +68,75 @@ public class SidebarPage(IPage page)
             }
         }
 
-        // Wait for the new item to appear in the tree
-        await _page.WaitForTimeoutAsync(300);
-
-        // NOTE: Pages are created as "Untitled", "Untitled 2", ... in the sidebar.
-        // Optional `title` is intentionally ignored to keep API compatibility.
-        for (var attempt = 0; attempt < 20; attempt++)
+        // Wait for the URL to change (new page navigation occurred).
+        for (var attempt = 0; attempt < 40; attempt++)
         {
-            var afterUntitledTitles = await GetUntitledTitlesAsync();
-            var newTitle = afterUntitledTitles.Except(beforeUntitledTitles).FirstOrDefault();
-            if (!string.IsNullOrWhiteSpace(newTitle))
-            {
-                var created = _page.Locator("aside").GetByText(newTitle, new() { Exact = true }).First;
-                await created.WaitForAsync(new() { Timeout = 5_000 });
-                return created;
-            }
-
-            await _page.WaitForTimeoutAsync(200);
+            if (_page.Url != urlBeforeCreate) break;
+            await _page.WaitForTimeoutAsync(250);
         }
 
-        var fallback = _page.Locator("aside").GetByText("Untitled", new() { Exact = true }).Last;
-        await fallback.WaitForAsync(new() { Timeout = 5_000 });
-        return fallback;
+        // After "New page" is clicked, the app calls onFileCreated which sets
+        // isEditMode=true automatically. So the app will be in EDIT MODE after creation.
+        // We wait for either the Save button (edit mode) or the Edit button (view mode)
+        // to become visible — indicating a stable state.
+        //
+        // IMPORTANT: The app first navigates to a temp page ID (optimistic), then the
+        // API call completes and replaces the temp ID with a real DB ID. We must wait
+        // for this transition to complete before returning, otherwise the editor
+        // will be unmounted. We detect stability by waiting for the Tiptap editor
+        // container (.page-editor-content) to appear.
+
+        var saveBtn = _page.GetByTestId("save-page-button");
+        var editPageBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Edit page", Exact = true });
+        var leaveBtn = _page.GetByTestId("unsaved-leave-without-saving");
+
+        // Phase 1: wait for any stable header button (edit mode or view mode)
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            // Dismiss unsaved dialog if visible (handles dirty-state transitions)
+            if (await leaveBtn.IsVisibleAsync())
+            {
+                await leaveBtn.ClickAsync();
+                await _page.WaitForTimeoutAsync(500);
+                continue;
+            }
+
+            // Stable header button visible
+            if (await saveBtn.IsVisibleAsync() || await editPageBtn.IsVisibleAsync())
+                break;
+
+            await _page.WaitForTimeoutAsync(300);
+        }
+
+        // Phase 2: wait for the Tiptap editor container to appear, which confirms the
+        // page has fully loaded (temp ID → real DB ID transition completed).
+        try
+        {
+            await _page.Locator(".page-editor-content").WaitForAsync(new() { Timeout = 15_000 });
+        }
+        catch
+        {
+            // Editor didn't appear — fall through; test will handle the failure.
+        }
+
+        // Extract the page title from the page header for the return locator.
+        var headerTitle = _page.GetByTestId("page-header-title");
+        string pageTitle;
+        try
+        {
+            pageTitle = (await headerTitle.InnerTextAsync(new() { Timeout = 3_000 })).Trim();
+        }
+        catch
+        {
+            pageTitle = string.Empty;
+        }
+
+        // Return the sidebar locator matching the active page title.
+        if (!string.IsNullOrWhiteSpace(pageTitle))
+        {
+            return _page.Locator("aside").GetByText(pageTitle, new() { Exact = true }).First;
+        }
+        return _page.Locator("aside [aria-selected='true']").First;
     }
 
     /// <summary>Creates a new folder and optionally renames it.</summary>
@@ -176,8 +222,18 @@ public class SidebarPage(IPage page)
             await clearSearchButton.ClickAsync();
         }
 
-        // After clicking, wait a bit for the page to load
-        await _page.WaitForTimeoutAsync(500);
+        // Wait for the URL to update with ?page= parameter (URL is updated via React Effect after click)
+        var urlBefore = _page.Url;
+        for (var attempt = 0; attempt < 20; attempt++)
+        {
+            if (_page.Url.Contains("?page=") && _page.Url != urlBefore) break;
+            await _page.WaitForTimeoutAsync(300);
+        }
+        // If the URL never had ?page=, it means we were on the home page — just wait briefly
+        if (!_page.Url.Contains("?page="))
+        {
+            await _page.WaitForTimeoutAsync(500);
+        }
     }
 
     /// <summary>Clicks the last tree item with the given visible text.</summary>
@@ -222,5 +278,95 @@ public class SidebarPage(IPage page)
     {
         await _page.Locator("aside").WaitForAsync(new() { Timeout = 10_000 });
         await _page.Locator("aside").IsVisibleAsync();
+    }
+
+    // ── Delete helpers ─────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Hovers the last page item in the sidebar and clicks its inline "Delete"
+    /// action button. For file nodes (pages) the delete action renders inline
+    /// as a <span role="button" aria-label="Delete"> — NOT in a dropdown.
+    /// </summary>
+    public async Task DeleteLastPageAsync()
+    {
+        var items = _page.Locator("aside [data-radix-accordion-item]");
+        var count = await items.CountAsync();
+        if (count == 0) throw new InvalidOperationException("No tree items found in sidebar.");
+
+        var last = items.Nth(count - 1);
+        await last.ScrollIntoViewIfNeededAsync();
+        await last.HoverAsync();
+
+        // Pages have exactly 1 action (delete) so it renders inline, not in a dropdown.
+        // The button is <span role="button" aria-label="Delete"> — use ARIA role selector.
+        var deleteBtn = last.GetByRole(AriaRole.Button, new() { Name = "Delete", Exact = true });
+        await deleteBtn.WaitForAsync(new() { Timeout = 5_000 });
+        await deleteBtn.ClickAsync();
+    }
+
+    /// <summary>
+    /// Hovers the last folder item in the sidebar, opens "More actions" dropdown,
+    /// and clicks "Delete". Folders show 4 actions → they use the overflow dropdown.
+    /// </summary>
+    public async Task DeleteLastFolderAsync()
+    {
+        var folders = _page.Locator("aside [data-radix-accordion-item]");
+        var count = await folders.CountAsync();
+        if (count == 0) throw new InvalidOperationException("No folder items found in sidebar.");
+
+        // Walk backwards to find the last item that is a folder (has children / accordion content)
+        var last = folders.Nth(count - 1);
+        await last.ScrollIntoViewIfNeededAsync();
+        await last.HoverAsync();
+
+        // Folders have 4 actions (delete, rename, newFile, newFolder) → rendered
+        // inside a Radix DropdownMenu with trigger <span role="button" aria-label="More actions">.
+        var moreBtn = last.GetByRole(AriaRole.Button, new() { Name = "More actions", Exact = true });
+        await moreBtn.WaitForAsync(new() { Timeout = 5_000 });
+        await moreBtn.ClickAsync();
+
+        // Wait for dropdown portal to appear and click the Delete menuitem.
+        var deleteItem = _page.GetByRole(AriaRole.Menuitem, new() { Name = "Delete", Exact = true });
+        await deleteItem.WaitForAsync(new() { Timeout = 5_000 });
+        await deleteItem.ClickAsync();
+    }
+
+    /// <summary>
+    /// Clicks the "Delete" confirm button in the delete-confirmation dialog.
+    /// Uses the data-testid added to DeleteConfirmDialog for reliability.
+    /// </summary>
+    public async Task ConfirmDeleteDialogAsync()
+    {
+        var confirmBtn = _page.GetByTestId("confirm-delete-confirm");
+        await confirmBtn.WaitForAsync(new() { Timeout = 5_000 });
+        await confirmBtn.ClickAsync();
+        // Wait for the dialog to close and tree to update
+        await _page.WaitForTimeoutAsync(500);
+    }
+
+    /// <summary>
+    /// Clicks the "Cancel" button in the delete-confirmation dialog.
+    /// </summary>
+    public async Task CancelDeleteDialogAsync()
+    {
+        var cancelBtn = _page.GetByTestId("confirm-delete-cancel");
+        await cancelBtn.WaitForAsync(new() { Timeout = 5_000 });
+        await cancelBtn.ClickAsync();
+        await _page.WaitForTimeoutAsync(300);
+    }
+
+    /// <summary>
+    /// Renames the currently active page via the main-content PageTitle input.
+    /// Requires the page to be in EDIT MODE (the input is only editable then).
+    /// </summary>
+    public async Task RenameActivePageTitleAsync(string newTitle)
+    {
+        // PageTitle renders an <input aria-label="Page title"> in edit mode.
+        var titleInput = _page.GetByRole(AriaRole.Textbox, new() { Name = "Page title", Exact = true });
+        await titleInput.WaitForAsync(new() { Timeout = 5_000 });
+        await titleInput.ClearAsync();
+        await titleInput.FillAsync(newTitle);
+        await titleInput.BlurAsync();
+        await _page.WaitForTimeoutAsync(500);
     }
 }

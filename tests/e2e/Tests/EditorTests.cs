@@ -25,7 +25,8 @@ public class EditorTests : E2ETestBase
     public async Task NewPage_StartsWithNoBlocks()
     {
         var count = await App.Editor.BlockCountAsync();
-        Assert.That(count, Is.EqualTo(0));
+        // Tiptap always initialises with one empty paragraph node; "no user blocks" == 1.
+        Assert.That(count, Is.EqualTo(1));
     }
 
     // ── Add blocks ───────────────────────────────────────────────────────────
@@ -33,6 +34,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddTextBlock_AppearsInEditor()
     {
+        await App.EnterPageEditModeAsync();
         var beforeCount = await App.Editor.BlockCountAsync();
 
         await App.Editor.AddBlockAsync("Text");
@@ -44,6 +46,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddTextBlock_CanTypeContent()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Text");
         await App.Editor.TypeInLastTextBlockAsync("Hello from E2E test");
 
@@ -54,6 +57,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddCodeBlock_RendersMonacoEditor()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Code");
 
         await Expect(App.Editor.LastCodeEditor).ToBeVisibleAsync();
@@ -62,17 +66,19 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddCodeBlock_CanChangeLanguage()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Code");
         await App.Editor.SetCodeLanguageAsync("typescript");
 
-        // Language button should now show "typescript"
-        var langBtn = Page.Locator("button[class*='font-mono']").Last;
-        await Expect(langBtn).ToContainTextAsync("typescript");
+        // The CodeBlock uses a <select> element; check its current value.
+        var langSelect = Page.Locator("select").Last;
+        await Expect(langSelect).ToHaveValueAsync("typescript");
     }
 
     [Test]
     public async Task AddTableBlock_ShowsDefaultColumns()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Table");
 
         // In edit mode the headers render as inputs — verify their values
@@ -84,6 +90,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddTableBlock_CanFillCells()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Table");
         await App.Editor.FillTableHeaderAsync(0, "Name");
         await App.Editor.FillTableCellAsync(0, 0, "Alice");
@@ -96,6 +103,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddTableBlock_CanAddRow()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Table");
         var initialRows = await Page.Locator("table tbody tr").CountAsync();
 
@@ -108,6 +116,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddTableBlock_CanAddColumn()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Table");
         var initialCols = await Page.Locator("table thead th").CountAsync();
 
@@ -121,6 +130,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddChecklistBlock_ShowsAddItemButton()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Checklist");
 
         await Expect(Page.GetByRole(AriaRole.Button, new() { Name = "Add item" }).Last).ToBeVisibleAsync();
@@ -129,11 +139,12 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddChecklistBlock_CanAddAndCheckItem()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Checklist");
         await App.Editor.TypeAgendaItemAsync("Learn Playwright");
 
         // Verify the text input has the expected value
-        var agendaInputs = Page.Locator("input[placeholder='To-do item…']");
+        var agendaInputs = Page.Locator("input[placeholder='Item\u2026']");
         await Expect(agendaInputs.Last).ToHaveValueAsync("Learn Playwright");
 
         // Checkbox is a sibling of the text input inside the same flex row
@@ -145,14 +156,16 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddImageBlock_ShowsEmptyForm()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Image");
 
-        await Expect(Page.GetByPlaceholder("https://example.com/image.png")).ToBeVisibleAsync();
+        await Expect(Page.GetByPlaceholder("Image URL\u2026")).ToBeVisibleAsync();
     }
 
     [Test]
     public async Task AddImageBlock_CanSetUrl()
     {
+        await App.EnterPageEditModeAsync();
         const string imgUrl =
             "https://upload.wikimedia.org/wikipedia/commons/thumb/4/4c/Typescript_logo_2020.svg/512px-Typescript_logo_2020.svg.png";
 
@@ -167,14 +180,16 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task AddVideoBlock_ShowsEmptyForm()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Video");
 
-        await Expect(Page.GetByPlaceholder("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).ToBeVisibleAsync();
+        await Expect(Page.GetByPlaceholder("YouTube or video URL\u2026")).ToBeVisibleAsync();
     }
 
     [Test]
     public async Task AddVideoBlock_CanRenderYoutubeEmbed()
     {
+        await App.EnterPageEditModeAsync();
         const string videoUrl = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
 
         await App.Editor.AddBlockAsync("Video");
@@ -191,6 +206,7 @@ public class EditorTests : E2ETestBase
     public async Task DeleteBlock_RemovesItFromEditor()
     {
         // Add a fresh text block so we know exactly which one to delete
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Text");
         var beforeCount = await App.Editor.BlockCountAsync();
 
@@ -205,6 +221,7 @@ public class EditorTests : E2ETestBase
     [Test]
     public async Task SaveButton_ShowsSavedFeedback()
     {
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Text");
         await App.Editor.TypeInLastTextBlockAsync("dirty");
 
@@ -213,7 +230,8 @@ public class EditorTests : E2ETestBase
 
         await App.SaveAsync();
 
-        // After click, button is briefly disabled
-        await Expect(saveBtn).ToBeDisabledAsync();
+        // After save, edit mode exits — "Edit page" button reappears
+        var editBtn = Page.GetByRole(AriaRole.Button, new() { Name = "Edit page" });
+        await Expect(editBtn).ToBeVisibleAsync();
     }
 }

@@ -172,3 +172,15 @@ export const SavedState: Story = {
     onBlocksChange: fn(),
   },
 };
+
+/** Loading skeleton state shown immediately while switching notebook pages. */
+export const LoadingState: Story = {
+  args: {
+    page: pageWithBlocks,
+    isPageLoading: true,
+    onSave: fn(),
+    onTitleChange: fn(),
+    onBlocksChange: fn(),
+    onMobileSidebarToggle: fn(),
+  },
+};

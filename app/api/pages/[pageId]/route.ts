@@ -53,14 +53,20 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Page not found' }, { status: 404 });
   }
 
-  let body: { title?: unknown; order?: unknown; tags?: unknown };
+  let body: { title?: unknown; order?: unknown; tags?: unknown; content?: unknown };
   try {
     body = await req.json();
   } catch {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  const updates: { title?: string; order?: number; tags?: string[] } = {};
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const updates: { title?: string; order?: number; tags?: string[]; content?: any } = {};
+
+  // content is an arbitrary Tiptap JSON object — accept any object or null
+  if ('content' in body && (body.content === null || (typeof body.content === 'object' && !Array.isArray(body.content)))) {
+    updates.content = body.content;
+  }
 
   if (typeof body.title === 'string') {
     const trimmed = body.title.trim();
@@ -77,7 +83,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
   }
 
   if (Object.keys(updates).length === 0) {
-    return NextResponse.json({ error: 'No valid fields to update' }, { status: 400 });
+    return NextResponse.json({ error: 'No valid fields provided' }, { status: 400 });
   }
 
   if (updates.title) {

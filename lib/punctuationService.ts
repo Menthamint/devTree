@@ -274,34 +274,34 @@ function shouldAddPeriodAtBreak(
 /**
  * Check if ML punctuation model is loaded (currently uses rule-based approach).
  */
-export function isPunctuationModelLoaded(): boolean {
+function isPunctuationModelLoaded(): boolean {
   return true; // Rule-based system is always "loaded"
 }
 
 /**
  * Check if ML punctuation model is loading (currently uses rule-based approach).
  */
-export function isPunctuationModelLoading(): boolean {
+function isPunctuationModelLoading(): boolean {
   return false;
 }
 
 /**
  * Get model loading error (currently none for rule-based approach).
  */
-export function getPunctuationModelError(): Error | null {
+function getPunctuationModelError(): Error | null {
   return null;
 }
 
 /**
  * Preload punctuation model (no-op for rule-based approach).
  */
-export async function preloadPunctuationModel(): Promise<void> {
+async function preloadPunctuationModel(): Promise<void> {
   // No-op: rule-based system doesn't need preloading
 }
 
 /**
  * Clear model cache (no-op for rule-based approach).
  */
-export function clearPunctuationModelCache(): void {
+function clearPunctuationModelCache(): void {
   // No-op: rule-based system has no cache
 }

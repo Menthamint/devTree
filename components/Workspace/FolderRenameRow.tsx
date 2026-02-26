@@ -140,10 +140,11 @@ export function FolderRenameRow({
       />
     );
   } else {
-    // Normal folder name — no longer double-click to enter rename mode.
-    // Rename is now triggered via the rename icon in the actions menu.
     nameContent = (
-      <TruncatedText className="min-w-0 flex-1 text-sm">
+      <TruncatedText
+        className="min-w-0 flex-1 text-sm"
+        onDoubleClick={startEdit}
+      >
         {item.name}
       </TruncatedText>
     );

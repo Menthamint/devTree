@@ -101,7 +101,7 @@ public class SidebarTests : E2ETestBase
     {
         await App.Sidebar.SelectPageAsync("React Hooks");
 
-        var header = Page.Locator("header span").First;
+        var header = Page.GetByTestId("page-header-title");
         await Expect(header).ToContainTextAsync("React Hooks");
     }
 

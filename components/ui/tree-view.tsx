@@ -379,7 +379,7 @@ const TreeNode = ({
 
   return (
     <AccordionPrimitive.Root type="multiple" value={value} onValueChange={setValue}>
-      <AccordionPrimitive.Item value={item.id}>
+      <AccordionPrimitive.Item value={item.id} data-radix-accordion-item="">
         <AccordionPrimitive.Header>
           <AccordionPrimitive.Trigger
             className={cn(ROW_BASE, isSelected && ROW_SELECTED, isDragOver && ROW_DRAG_OVER, item.className)}
@@ -514,6 +514,7 @@ export const TreeLeaf = React.forwardRef<
       <div
         ref={ref}
         role="treeitem"
+        data-radix-accordion-item=""
         tabIndex={item.disabled ? -1 : 0}
         aria-selected={isSelected}
         className={cn(

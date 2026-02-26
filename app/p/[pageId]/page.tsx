@@ -6,5 +6,5 @@ type PageProps = {
 
 export default async function PageByIdRoute({ params }: Readonly<PageProps>) {
   const { pageId } = await params;
-  redirect(`/pages/${encodeURIComponent(pageId)}`);
+  redirect(`/notebook?page=${encodeURIComponent(pageId)}`);
 }

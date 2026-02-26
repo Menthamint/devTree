@@ -7,6 +7,7 @@ import { BookOpen, BarChart2, BookHeart, Settings } from 'lucide-react';
 import { ActivityBarItem } from './ActivityBarItem';
 import { useSettingsDialog } from '@/components/SettingsDialog/useSettingsDialog';
 import { useStatsStore } from '@/lib/statsStore';
+import { getLastNotebookPageId } from '@/lib/notebookPageMemory';
 
 const TOP_ITEMS = [
   {
@@ -47,6 +48,20 @@ export function ActivityBar() {
     (item) => !(item.id === 'statistics' && !statisticsEnabled),
   );
 
+  const navigateToSection = (item: (typeof TOP_ITEMS)[number]) => {
+    if (!item.href) return;
+
+    if (item.id === 'notebook') {
+      const lastPageId = getLastNotebookPageId();
+      if (lastPageId) {
+        router.push(`/notebook?page=${encodeURIComponent(lastPageId)}`);
+        return;
+      }
+    }
+
+    router.push(item.href);
+  };
+
   return (
     <nav
       aria-label="Application sections"
@@ -64,7 +79,7 @@ export function ActivityBar() {
             onClick={
               !('disabled' in item) || !item.disabled
                 ? () => {
-                    if (item.href) router.push(item.href);
+                    navigateToSection(item);
                   }
                 : undefined
             }

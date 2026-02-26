@@ -12,7 +12,7 @@
  */
 import { describe, it, expect } from 'vitest';
 
-import { computePageStats, exportPageToMarkdown } from './pageUtils';
+import { computePageStats, exportPageToMarkdown, extractInlineTagsFromContent } from './pageUtils';
 import type { Page } from '@/components/MainContent/types';
 
 // ─── Test fixtures ────────────────────────────────────────────────────────────
@@ -234,5 +234,125 @@ describe('exportPageToMarkdown', () => {
     const stats = computePageStats(pageWithTags);
     expect(stats.blockCount).toBe(1);
     expect(stats.wordCount).toBeGreaterThan(0);
+  });
+});
+
+// ─── extractInlineTagsFromContent ─────────────────────────────────────────────
+
+describe('extractInlineTagsFromContent', () => {
+  it('returns empty array for null input', () => {
+    expect(extractInlineTagsFromContent(null)).toEqual([]);
+  });
+
+  it('returns empty array for undefined input', () => {
+    expect(extractInlineTagsFromContent(undefined)).toEqual([]);
+  });
+
+  it('returns empty array for empty doc', () => {
+    expect(extractInlineTagsFromContent({ type: 'doc', content: [] })).toEqual([]);
+  });
+
+  it('extracts block-level attrs.tags from atom nodes', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'codeBlockNode', attrs: { tags: ['typescript', 'react'], code: '' } },
+        { type: 'checklistNode', attrs: { tags: ['todo'], items: [] } },
+      ],
+    };
+    expect(extractInlineTagsFromContent(doc)).toEqual(['react', 'todo', 'typescript']);
+  });
+
+  it('extracts inline inlineTag marks from text nodes', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'hello',
+              marks: [{ type: 'inlineTag', attrs: { tag: 'javascript' } }],
+            },
+            {
+              type: 'text',
+              text: 'world',
+              marks: [{ type: 'inlineTag', attrs: { tag: 'node' } }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(extractInlineTagsFromContent(doc)).toEqual(['javascript', 'node']);
+  });
+
+  it('combines and deduplicates block-level and inline tags', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'codeBlockNode', attrs: { tags: ['react', 'shared'], code: '' } },
+        {
+          type: 'paragraph',
+          content: [
+            {
+              type: 'text',
+              text: 'note',
+              marks: [{ type: 'inlineTag', attrs: { tag: 'shared' } }],
+            },
+          ],
+        },
+      ],
+    };
+    expect(extractInlineTagsFromContent(doc)).toEqual(['react', 'shared']);
+  });
+
+  it('returns tags sorted alphabetically', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'checklistNode', attrs: { tags: ['zebra', 'alpha', 'mango'], items: [] } },
+      ],
+    };
+    expect(extractInlineTagsFromContent(doc)).toEqual(['alpha', 'mango', 'zebra']);
+  });
+
+  it('ignores empty string tags', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        { type: 'codeBlockNode', attrs: { tags: ['', 'valid', ''], code: '' } },
+      ],
+    };
+    expect(extractInlineTagsFromContent(doc)).toEqual(['valid']);
+  });
+
+  it('recurses into deeply nested content', () => {
+    const doc = {
+      type: 'doc',
+      content: [
+        {
+          type: 'bulletList',
+          content: [
+            {
+              type: 'listItem',
+              content: [
+                {
+                  type: 'paragraph',
+                  content: [
+                    {
+                      type: 'text',
+                      text: 'deep',
+                      marks: [{ type: 'inlineTag', attrs: { tag: 'deep-tag' } }],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(extractInlineTagsFromContent(doc)).toEqual(['deep-tag']);
   });
 });

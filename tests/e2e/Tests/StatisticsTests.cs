@@ -21,7 +21,7 @@ public class StatisticsTests : E2ETestBase
         await statsBtn.ClickAsync();
 
         // Wait for the statistics page header to appear
-        await Expect(Page.Locator("header").GetByText("Statistics").First).ToBeVisibleAsync(new() { Timeout = 5_000 });
+        await Expect(Page.Locator("h1").GetByText("Statistics").First).ToBeVisibleAsync(new() { Timeout = 5_000 });
     }
 
     [Test]
@@ -30,7 +30,7 @@ public class StatisticsTests : E2ETestBase
         // Go to statistics first
         var statsBtn = Page.Locator("nav[aria-label='Application sections'] button[aria-label='Statistics']").First;
         await statsBtn.ClickAsync();
-        await Expect(Page.Locator("header").GetByText("Statistics").First).ToBeVisibleAsync(new() { Timeout = 5_000 });
+        await Expect(Page.Locator("h1").GetByText("Statistics").First).ToBeVisibleAsync(new() { Timeout = 5_000 });
 
         // Click the Notebook item in the ActivityBar
         var notebookBtn = Page.Locator("nav[aria-label='Application sections'] button[aria-label='Notebook']").First;
@@ -38,6 +38,32 @@ public class StatisticsTests : E2ETestBase
 
         // Verify we're on the notebook by checking for the sidebar
         await Expect(Page.Locator("aside")).ToBeVisibleAsync(new() { Timeout = 5_000 });
+    }
+
+    [Test]
+    public async Task NavigateBackToNotebook_RestoresLastOpenedPage()
+    {
+        // Ensure we are on notebook route where sidebar is available.
+        await Page.GotoAsync($"{BaseUrl}/notebook", new() { WaitUntil = WaitUntilState.NetworkIdle });
+
+        // Select a known page in notebook first.
+        await App.Sidebar.SelectPageAsync("React Hooks");
+        var headerTitle = Page.GetByTestId("page-header-title");
+        await Expect(headerTitle).ToContainTextAsync("React Hooks");
+
+        // Navigate away to statistics.
+        var statsBtn = Page.Locator("nav[aria-label='Application sections'] button[aria-label='Statistics']").First;
+        await statsBtn.ClickAsync();
+        await Expect(Page.Locator("h1").GetByText("Statistics").First).ToBeVisibleAsync(new() { Timeout = 5_000 });
+
+        // Return to notebook.
+        var notebookBtn = Page.Locator("nav[aria-label='Application sections'] button[aria-label='Notebook']").First;
+        await notebookBtn.ClickAsync();
+
+        // Last opened page should be restored.
+        await Expect(Page.Locator("aside")).ToBeVisibleAsync(new() { Timeout = 5_000 });
+        await Expect(headerTitle).ToContainTextAsync("React Hooks");
+        Assert.That(Page.Url, Does.Contain("/notebook?page="), "Notebook URL should include the restored page query parameter.");
     }
 
     [Test]
@@ -60,7 +86,7 @@ public class StatisticsTests : E2ETestBase
         await Page.GotoAsync($"{BaseUrl}/statistics", new() { WaitUntil = WaitUntilState.NetworkIdle });
 
         // Wait for page to be ready
-        await Expect(Page.Locator("header").GetByText("Statistics").First).ToBeVisibleAsync(new() { Timeout = 5_000 });
+        await Expect(Page.Locator("h1").GetByText("Statistics").First).ToBeVisibleAsync(new() { Timeout = 5_000 });
 
         // Click the Settings button in the ActivityBar
         await App.OpenSettingsAsync();

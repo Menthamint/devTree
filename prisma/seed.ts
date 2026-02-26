@@ -33,11 +33,14 @@ async function main() {
     update: {
       password: hashedDemoPassword,
       name: 'Demo User',
+      // Reset preferences to English so E2E tests always start in the correct locale.
+      preferences: { locale: 'en', theme: 'light' },
     },
     create: {
       email: 'demo@devtree.local',
       password: hashedDemoPassword,
       name: 'Demo User',
+      preferences: { locale: 'en', theme: 'light' },
     },
   });
   console.log('Demo user:', user.email);
@@ -45,7 +48,7 @@ async function main() {
   // ── Folders ──────────────────────────────────────────────────────────────────
   const frontendFolder = await prisma.folder.upsert({
     where: { id: 'seed-folder-frontend' },
-    update: {},
+    update: { name: 'Frontend' },
     create: {
       id: 'seed-folder-frontend',
       name: 'Frontend',
@@ -56,7 +59,7 @@ async function main() {
 
   const backendFolder = await prisma.folder.upsert({
     where: { id: 'seed-folder-backend' },
-    update: {},
+    update: { name: 'Backend' },
     create: {
       id: 'seed-folder-backend',
       name: 'Backend',
@@ -67,11 +70,31 @@ async function main() {
 
   console.log('Folders:', frontendFolder.name, backendFolder.name);
 
+  // ── Cleanup: delete non-seed pages and folders created by tests ───────────────
+  const seedPageIds = ['seed-react-hooks', 'seed-typescript', 'seed-rest-api', 'seed-getting-started'];
+  const seedFolderIds = ['seed-folder-frontend', 'seed-folder-backend'];
+
+  const deletedPages = await prisma.page.deleteMany({
+    where: {
+      ownerId: user.id,
+      id: { notIn: seedPageIds },
+    },
+  });
+  const deletedFolders = await prisma.folder.deleteMany({
+    where: {
+      ownerId: user.id,
+      id: { notIn: seedFolderIds },
+    },
+  });
+  if (deletedPages.count > 0 || deletedFolders.count > 0) {
+    console.log(`Cleaned up: ${deletedPages.count} non-seed pages, ${deletedFolders.count} non-seed folders`);
+  }
+
   // ── Pages ─────────────────────────────────────────────────────────────────────
 
   const reactPage = await prisma.page.upsert({
     where: { id: 'seed-react-hooks' },
-    update: {},
+    update: { title: 'React Hooks', tags: ['react', 'hooks'], folderId: 'seed-folder-frontend' },
     create: {
       id: 'seed-react-hooks',
       title: 'React Hooks',
@@ -117,7 +140,7 @@ async function main() {
 
   const tsPage = await prisma.page.upsert({
     where: { id: 'seed-typescript' },
-    update: {},
+    update: { title: 'TypeScript Tips', tags: ['typescript'], folderId: 'seed-folder-frontend' },
     create: {
       id: 'seed-typescript',
       title: 'TypeScript Tips',
@@ -154,7 +177,7 @@ async function main() {
 
   const apiPage = await prisma.page.upsert({
     where: { id: 'seed-rest-api' },
-    update: {},
+    update: { title: 'REST API Design', tags: ['api', 'backend'], folderId: 'seed-folder-backend' },
     create: {
       id: 'seed-rest-api',
       title: 'REST API Design',
@@ -193,7 +216,7 @@ async function main() {
   // Root-level page (no folder)
   const gettingStartedPage = await prisma.page.upsert({
     where: { id: 'seed-getting-started' },
-    update: {},
+    update: { title: 'Getting Started', tags: [], folderId: null },
     create: {
       id: 'seed-getting-started',
       title: 'Getting Started',

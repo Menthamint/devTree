@@ -11,29 +11,38 @@ const page: Page = {
   blocks: [],
 };
 
-describe('PageTitle', () => {
-  it('renders page title', () => {
+describe('PageTitle (read-only mode)', () => {
+  it('renders a heading with the page title', () => {
     render(<PageTitle page={page} />);
-    const input = screen.getByRole('textbox', { name: /page title/i });
-    expect(input).toHaveValue('My Page');
-    expect(input).toHaveAttribute('readOnly');
+    // In read-only mode we render a <h1>, not an interactive input
+    expect(screen.queryByRole('textbox')).toBeNull();
+    expect(screen.getByRole('heading', { level: 1 })).toHaveTextContent('My Page');
   });
 
-  it('calls onTitleChange when editable and user types', async () => {
+  it('renders "(Untitled)" placeholder when title is empty', () => {
+    render(<PageTitle page={{ ...page, title: '' }} />);
+    expect(screen.getByRole('heading', { level: 1 })).toBeInTheDocument();
+    expect(screen.getByText('Untitled')).toBeInTheDocument();
+  });
+});
+
+describe('PageTitle (edit mode)', () => {
+  it('renders an editable input with accessible label', () => {
+    render(<PageTitle page={page} readOnly={false} />);
+    const input = screen.getByRole('textbox', { name: /page title/i });
+    expect(input).toHaveValue('My Page');
+    expect(input).not.toHaveAttribute('readOnly');
+  });
+
+  it('calls onTitleChange when user types', async () => {
     const user = userEvent.setup();
     const onTitleChange = vi.fn();
     render(
       <PageTitle page={page} readOnly={false} onTitleChange={onTitleChange} />,
     );
     const input = screen.getByRole('textbox', { name: /page title/i });
-    expect(input).not.toHaveAttribute('readOnly');
     await user.clear(input);
     await user.type(input, 'New Title');
     expect(onTitleChange).toHaveBeenCalled();
-  });
-
-  it('has accessible label', () => {
-    render(<PageTitle page={page} />);
-    expect(screen.getByLabelText(/page title/i)).toBeInTheDocument();
   });
 });

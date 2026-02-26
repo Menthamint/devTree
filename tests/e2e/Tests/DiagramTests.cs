@@ -14,21 +14,27 @@ namespace DevTree.E2E.Tests;
 [Category("Diagram")]
 public class DiagramTests : E2ETestBase
 {
-    [SetUp]
-    public async Task NavigateToPageAsync()
-    {
-        await App.Sidebar.SelectPageAsync("TypeScript Tips");
-    }
-
     // ── Canvas renders ────────────────────────────────────────────────────────
 
     [Test]
     public async Task DiagramBlock_RendersExcalidrawCanvas()
     {
-        // TypeScript Tips has a pre-loaded diagram block.
-        // Excalidraw renders a <canvas> element inside its .excalidraw container.
-        var canvas = Page.Locator(".excalidraw canvas").First;
+        // Create a fresh page, add a diagram block, save it, then reload to
+        // verify the Excalidraw canvas renders in VIEW mode (not just edit mode).
+        await App.Sidebar.CreatePageAsync();
+        await App.EnterPageEditModeAsync();
+        await App.Editor.AddBlockAsync("Diagram");
+
+        // Wait for canvas to appear in edit mode first.
+        var canvas = Page.Locator(".excalidraw canvas").Last;
         await Expect(canvas).ToBeVisibleAsync(new() { Timeout = 15_000 });
+
+        // Save and exit edit mode to verify view-mode rendering.
+        await App.SaveAsync();
+
+        // Canvas should still be visible in view mode.
+        var viewCanvas = Page.Locator(".excalidraw canvas").First;
+        await Expect(viewCanvas).ToBeVisibleAsync(new() { Timeout = 10_000 });
     }
 
     // ── Add a new diagram block ───────────────────────────────────────────────
@@ -36,7 +42,8 @@ public class DiagramTests : E2ETestBase
     [Test]
     public async Task AddDiagramBlock_RendersExcalidrawCanvasInEditMode()
     {
-        await App.Sidebar.SelectPageAsync("React Hooks");
+        await App.Sidebar.CreatePageAsync();
+        await App.EnterPageEditModeAsync();
         await App.Editor.AddBlockAsync("Diagram");
 
         // After adding (new blocks auto-start in edit mode), the Excalidraw
@@ -48,10 +55,9 @@ public class DiagramTests : E2ETestBase
     [Test]
     public async Task AddDiagramBlock_EditModeShowsExcalidrawToolbar()
     {
-        var pageLocator = await App.Sidebar.CreatePageAsync().ConfigureAwait(false);
-        var pageTitle = (await pageLocator.InnerTextAsync().ConfigureAwait(false)).Trim();
-        await App.Sidebar.SelectPageAsync(pageTitle).ConfigureAwait(false);
-        await App.Editor.AddBlockAsync("Diagram").ConfigureAwait(false);
+        await App.Sidebar.CreatePageAsync();
+        await App.EnterPageEditModeAsync();
+        await App.Editor.AddBlockAsync("Diagram");
 
         // In edit mode (viewModeEnabled=false) the Excalidraw App-toolbar is visible.
         var toolbar = Page.Locator(".excalidraw .App-toolbar").Last;
@@ -63,47 +69,55 @@ public class DiagramTests : E2ETestBase
     [Test]
     public async Task ViewMode_FullscreenButtonIsVisible()
     {
-        // TypeScript Tips page has a pre-loaded diagram block in view mode.
-        // The overlay button (absolute-positioned) should be visible without editing.
-        var fullscreenBtn = Page.Locator("button[title*='ullscreen']").First;
+        // Create page with a diagram block, save, then verify the fullscreen
+        // button is visible in view mode (always present in the BlockHeader).
+        await App.Sidebar.CreatePageAsync();
+        await App.EnterPageEditModeAsync();
+        await App.Editor.AddBlockAsync("Diagram");
+
+        var canvas = Page.Locator(".excalidraw canvas").Last;
+        await Expect(canvas).ToBeVisibleAsync(new() { Timeout = 15_000 });
+
+        // Save → enters view mode
+        await App.SaveAsync();
+
+        // The fullscreen toggle button is always visible in the canvas BlockHeader
+        var fullscreenBtn = Page.GetByTestId("canvas-fullscreen-toggle").First;
         await Expect(fullscreenBtn).ToBeVisibleAsync(new() { Timeout = 15_000 });
     }
 
     [Test]
     public async Task EditMode_FullscreenButtonIsVisible()
     {
-        var pageLocator = await App.Sidebar.CreatePageAsync().ConfigureAwait(false);
-        var pageTitle = (await pageLocator.InnerTextAsync().ConfigureAwait(false)).Trim();
-        await App.Sidebar.SelectPageAsync(pageTitle).ConfigureAwait(false);
-        await App.Editor.AddBlockAsync("Diagram").ConfigureAwait(false);
+        await App.Sidebar.CreatePageAsync();
+        await App.EnterPageEditModeAsync();
+        await App.Editor.AddBlockAsync("Diagram");
 
-        // In edit mode the fullscreen toggle lives inside Excalidraw's toolbar
-        // (via renderTopRightUI). Title attribute contains "ullscreen".
-        var fullscreenBtn = Page.Locator("button[title*='ullscreen']").Last;
+        // The fullscreen toggle button is visible in the canvas BlockHeader in edit mode too
+        var fullscreenBtn = Page.GetByTestId("canvas-fullscreen-toggle").Last;
         await Expect(fullscreenBtn).ToBeVisibleAsync(new() { Timeout = 15_000 });
     }
 
     [Test]
     public async Task FullscreenButton_TogglesFullscreenOverlay()
     {
-        var pageLocator = await App.Sidebar.CreatePageAsync().ConfigureAwait(false);
-        var pageTitle = (await pageLocator.InnerTextAsync().ConfigureAwait(false)).Trim();
-        await App.Sidebar.SelectPageAsync(pageTitle).ConfigureAwait(false);
-        await App.Editor.AddBlockAsync("Diagram").ConfigureAwait(false);
+        await App.Sidebar.CreatePageAsync();
+        await App.EnterPageEditModeAsync();
+        await App.Editor.AddBlockAsync("Diagram");
 
         // Enter fullscreen
-        var fullscreenBtn = Page.Locator("button[title*='ullscreen']").Last;
+        var fullscreenBtn = Page.GetByTestId("canvas-fullscreen-toggle").Last;
         await Expect(fullscreenBtn).ToBeVisibleAsync(new() { Timeout = 15_000 });
         await fullscreenBtn.ClickAsync();
 
-        // The canvas should now cover the full viewport (dialog overlay rendered)
-        var dialog = Page.Locator("dialog[open]");
-        await Expect(dialog).ToBeVisibleAsync(new() { Timeout = 5_000 });
+        // The fullscreen overlay portal should be visible
+        var overlay = Page.GetByTestId("canvas-fullscreen-overlay");
+        await Expect(overlay).ToBeVisibleAsync(new() { Timeout = 5_000 });
 
-        // Exit fullscreen via the minimize button
-        var minimizeBtn = Page.Locator("button[title*='xit']").Last;
+        // Exit fullscreen via the minimize button in the overlay
+        var minimizeBtn = Page.GetByTestId("canvas-fullscreen-toggle").Last;
         await minimizeBtn.ClickAsync();
-        await Expect(dialog).Not.ToBeVisibleAsync(new() { Timeout = 5_000 });
+        await Expect(overlay).Not.ToBeVisibleAsync(new() { Timeout = 5_000 });
     }
 
     // ── View mode ─────────────────────────────────────────────────────────────
@@ -111,26 +125,19 @@ public class DiagramTests : E2ETestBase
     [Test]
     public async Task ExitingEditMode_HidesExcalidrawToolbar()
     {
-        var pageLocator = await App.Sidebar.CreatePageAsync().ConfigureAwait(false);
-        var pageTitle = (await pageLocator.InnerTextAsync().ConfigureAwait(false)).Trim();
-        await App.Sidebar.SelectPageAsync(pageTitle).ConfigureAwait(false);
-        await App.Editor.AddBlockAsync("Diagram").ConfigureAwait(false);
+        await App.Sidebar.CreatePageAsync();
+        await App.EnterPageEditModeAsync();
+        await App.Editor.AddBlockAsync("Diagram");
 
         // Wait for canvas to appear in edit mode
         var canvas = Page.Locator(".excalidraw canvas").Last;
         await Expect(canvas).ToBeVisibleAsync(new() { Timeout = 15_000 });
 
-        // Exit edit mode by clicking the "Done editing" button in the BlockWrapper.
-        // (Escape is intercepted by Excalidraw internally, so we use the aria-label button.)
-        var doneBtn = Page.Locator(
-            "button[aria-label='Done editing'], button[aria-label='Завершити редагування']"
-        ).Last;
-        await doneBtn.ClickAsync();
-        await Page.WaitForTimeoutAsync(200);
+        // Exit page-level edit mode by saving
+        await App.SaveAsync();
 
         // In view mode (viewModeEnabled=true) the Excalidraw toolbar is hidden.
         var toolbar = Page.Locator(".excalidraw .App-toolbar").Last;
         await Expect(toolbar).Not.ToBeVisibleAsync(new() { Timeout = 5_000 });
     }
 }
-

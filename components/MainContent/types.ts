@@ -45,9 +45,9 @@
  *   2. Define a `XXXBlockContent` type below.
  *   3. Add it to the `BlockContent` union.
  *   4. Write an `isXXXBlockContent` type guard.
- *   5. Add a case to `createBlock()` in BlockEditor.tsx.
- *   6. Add a render branch in `BlockContent` (BlockEditor.tsx).
- *   7. Add a definition to `BLOCK_DEFS` in BlockPicker.tsx.
+ *   5. Wire creation/insert logic in the unified editor slash/toolbar menus.
+ *   6. Add rendering logic in the corresponding editor node/view implementation.
+ *   7. Ensure any picker/menu metadata includes the new type.
  */
 export type BlockType =
   | 'text'
@@ -282,6 +282,9 @@ export type Page = {
   createdAt?: string;
   /** ISO datetime string from the server — when the page was last saved. */
   updatedAt?: string;
+  /** Unified Tiptap JSONContent document. Present when the page uses the new
+   *  unified editor; null/undefined for pages still using legacy blocks. */
+  content?: import('@tiptap/core').JSONContent | null;
 };
 
 // ─── Type guards ─────────────────────────────────────────────────────────────
@@ -348,7 +351,7 @@ export function isTableBlockContent(
     typeof content === 'object' &&
     content !== null &&
     'headers' in content &&
-    Array.isArray((content as TableBlockContent).headers)
+    Array.isArray(content.headers)
   );
 }
 
@@ -362,7 +365,7 @@ export function isAgendaBlockContent(
     typeof content === 'object' &&
     content !== null &&
     'items' in content &&
-    Array.isArray((content as AgendaBlockContent).items)
+    Array.isArray(content.items)
   );
 }
 
@@ -403,7 +406,7 @@ export function isImageBlockContent(
  * guard. The outer `type === 'diagram'` check is the primary discriminant;
  * the content-shape checks are a safety net.
  */
-export function isDiagramBlockContent(
+function isDiagramBlockContent(
   content: BlockContent,
   type: BlockType,
 ): content is DiagramBlockContent {
@@ -417,7 +420,7 @@ export function isDiagramBlockContent(
 }
 
 /** Video blocks have a URL; provider support is resolved in the component. */
-export function isVideoBlockContent(
+function isVideoBlockContent(
   content: BlockContent,
   type: BlockType,
 ): content is VideoBlockContent {

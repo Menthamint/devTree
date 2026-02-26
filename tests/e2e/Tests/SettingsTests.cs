@@ -101,7 +101,8 @@ public class SettingsTests : E2ETestBase
         await App.Settings.SetLanguageAsync("Ukrainian");
         await App.Settings.CloseAsync();
 
-        // The "Save" button label should change to Ukrainian
+        // Enter edit mode — the Save button in Ukrainian should be visible
+        await App.EnterPageEditModeAsync();
         var saveBtn = Page.GetByRole(AriaRole.Button, new() { Name = "Зберегти" });
         await Expect(saveBtn).ToBeVisibleAsync();
     }
@@ -119,6 +120,8 @@ public class SettingsTests : E2ETestBase
         await App.Settings.SetLanguageAsync("Англійська"); // "English" in Ukrainian
         await App.Settings.CloseAsync();
 
+        // Enter edit mode — the Save button in English should be visible
+        await App.EnterPageEditModeAsync();
         var saveBtn = Page.GetByRole(AriaRole.Button, new() { Name = "Save" });
         await Expect(saveBtn).ToBeVisibleAsync();
     }

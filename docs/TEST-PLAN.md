@@ -377,6 +377,94 @@ E2E tests launch a real browser, navigate the app, and assert visible DOM change
 | Tags per page toggle | Toggle feature flag → TagBar appears/disappears |
 | Tags per block toggle | Toggle → block tag filter appears/disappears |
 
+### Notebook Page Content Tests — `NotebookContentTests.cs`
+
+These tests cover the **notebook page content area** in depth: everything the user sees and does _inside_ the main content panel of a notebook page. They complement `EditorTests.cs` (block add/delete) and `SaveTests.cs` (dirty-state detection) by focusing on content-level UX: rendering, persistence, formatting, statistics, export, link cards, audio, inline-tag filtering, and keyboard shortcuts.
+
+#### Page Rendering
+
+| Test | Journey |
+|------|---------|
+| `ReadMode_ShowsPageTitle` | Open a saved page → `<h1>` contains the page title |
+| `ReadMode_ShowsBlocks` | Open a page with blocks → at least one `.page-editor-content > *` element visible |
+| `ReadMode_NoEditControls` | View mode → "Add block" button is NOT visible |
+| `EditMode_ShowsEditButton` | Start in view mode → "Edit page" button visible |
+| `EditMode_ShowsSaveButton` | Click "Edit page" → "save-page-button" visible, "Edit page" hidden |
+
+#### Content Persistence
+
+| Test | Journey |
+|------|---------|
+| `TextContent_PersistsAfterSaveAndReload` | Add text block → type text → save → reload page → text still visible |
+| `CodeContent_PersistsAfterSaveAndReload` | Add code block → type code → change language to Python → save → reload → code and language preserved |
+| `TableContent_PersistsAfterSaveAndReload` | Add table → fill header + cell → save → reload → values preserved |
+| `ChecklistContent_PersistsAfterSaveAndReload` | Add checklist → add item → check it → save → reload → item text and checked state preserved |
+| `PageTitle_PersistsAfterSaveAndReload` | Edit title → save → reload → title shown in header and sidebar |
+
+#### Editor Toolbar
+
+| Test | Journey |
+|------|---------|
+| `EditorToolbar_VisibleInEditMode` | Enter edit mode → editor toolbar appears above editor area |
+| `EditorToolbar_HiddenInViewMode` | View mode → toolbar is NOT visible |
+| `EditorToolbar_Bold_WrapsSelectionInStrong` | Type text → select all → click Bold → text rendered inside `<strong>` |
+| `EditorToolbar_Italic_WrapsSelectionInEm` | Type text → select all → click Italic → text rendered inside `<em>` |
+| `EditorToolbar_Heading_AppliesH2` | Click H2 in toolbar → active block renders as `<h2>` |
+| `EditorToolbar_Code_AppliesCodeMark` | Select text → click inline-code button → selection wrapped in `<code>` |
+
+#### Page Statistics Footer
+
+| Test | Journey |
+|------|---------|
+| `StatsFooter_ShowsBlockCount` | Open page with blocks → footer shows "N blocks" |
+| `StatsFooter_UpdatesAfterAddingBlock` | Enter edit mode → add text block → save → footer block count increases |
+| `StatsFooter_ShowsWordCount` | Open page with text → footer shows a non-zero word count |
+| `StatsFooter_ShowsReadingTime` | Page with at least 250 words → footer shows "N min read" |
+
+#### Export Markdown
+
+| Test | Journey |
+|------|---------|
+| `ExportMarkdown_ButtonVisibleInViewMode` | Open any page → Export (download) button visible in header |
+| `ExportMarkdown_ButtonVisibleInEditMode` | Enter edit mode → Export button still visible |
+
+#### Inline Tag Filtering
+
+| Test | Journey |
+|------|---------|
+| `InlineTagFilter_BarVisible_WhenPageHasInlineTags` | Open page that has inline tags in content → tag filter bar appears below toolbar |
+| `InlineTagFilter_HidesNonMatchingBlocks` | Click an inline tag chip → blocks without that tag are hidden |
+| `InlineTagFilter_ClearFilter_ShowsAllBlocks` | Click active chip again (deselect) or clear button → all blocks visible again |
+
+#### Link Card Block
+
+| Test | Journey |
+|------|---------|
+| `AddLinkCardBlock_ShowsUrlInput` | Enter edit mode → Add block → "Link" → URL input placeholder `Link URL…` visible |
+| `AddLinkCardBlock_RendersCardAfterUrl` | Enter URL → card title/URL visible in rendered card |
+| `AddLinkCardBlock_ExternalLinkOpensNewTab` | View mode → link `target="_blank"` and `rel="noopener noreferrer"` |
+
+#### Audio Block
+
+| Test | Journey |
+|------|---------|
+| `AddAudioBlock_ShowsAudioForm` | Enter edit mode → Add block → "Audio" → URL input visible |
+| `AddAudioBlock_RendersPlayerAfterUrl` | Enter a valid audio URL → `<audio>` or media player element visible |
+
+#### Keyboard Shortcuts
+
+| Test | Journey |
+|------|---------|
+| `KeyboardShortcut_CtrlS_SavesPage` | Enter edit mode → make change → press Ctrl+S → app returns to view mode (Edit button visible) |
+
+#### Block Actions Menu
+
+| Test | Journey |
+|------|---------|
+| `BlockActionsMenu_IsAccessible` | Hover block → "Block actions" button (grip) becomes visible |
+| `BlockActionsMenu_ContainsDeleteOption` | Open actions menu → "Delete block" menu item visible |
+| `BlockActionsMenu_ContainsCopyOption` | Open actions menu → "Copy" or "Duplicate" menu item visible (if feature exists) |
+
 ---
 
 ## 7. Test Data Management

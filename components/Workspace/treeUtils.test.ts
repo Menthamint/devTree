@@ -4,8 +4,10 @@ import { describe, it, expect } from 'vitest';
 import {
   addFileUnder,
   addFolderUnder,
+  buildTreeRootFromApi,
   collectPageIdsInSubtree,
   countDescendants,
+  emptyTreeRoot,
   findFirstPageIdInSubtree,
   findNodeInRoot,
   generateUniqueNameInScope,
@@ -352,5 +354,71 @@ describe('findFirstPageIdInSubtree', () => {
   it('returns null when subtree has no pages', () => {
     const emptyFolder: TreeNode = { id: 'empty', name: 'Empty', children: [] };
     expect(findFirstPageIdInSubtree(emptyFolder)).toBeNull();
+  });
+});
+
+// ─── buildTreeRootFromApi ─────────────────────────────────────────────────────
+
+describe('buildTreeRootFromApi', () => {
+  it('returns emptyTreeRoot structure when given no folders/pages', () => {
+    const result = buildTreeRootFromApi([], []);
+    expect(result).toEqual(emptyTreeRoot);
+  });
+
+  it('places root-level pages directly under the root', () => {
+    const pages = [
+      { id: 'p1', title: 'Page 1' },
+      { id: 'p2', title: 'Page 2' },
+    ];
+    const result = buildTreeRootFromApi([], pages);
+    expect(result.children).toHaveLength(2);
+    expect(result.children[0]).toMatchObject({ id: 'p1', name: 'Page 1', pageId: 'p1' });
+    expect(result.children[1]).toMatchObject({ id: 'p2', name: 'Page 2', pageId: 'p2' });
+  });
+
+  it('nests pages under their folder', () => {
+    const pages = [{ id: 'p1', title: 'Inside', folderId: 'f1' }];
+    const folders = [{ id: 'f1', name: 'Folder A' }];
+    const result = buildTreeRootFromApi(folders, pages);
+    const folderNode = result.children.find((c) => c.id === 'f1');
+    expect(folderNode).toBeDefined();
+    expect(folderNode?.children).toHaveLength(1);
+    expect(folderNode?.children?.[0]).toMatchObject({ id: 'p1', name: 'Inside', pageId: 'p1' });
+    // Root should have no direct pages
+    const rootPage = result.children.find((c) => c.id === 'p1');
+    expect(rootPage).toBeUndefined();
+  });
+
+  it('handles nested folders (parent/child)', () => {
+    const folders = [
+      { id: 'parent', name: 'Parent' },
+      { id: 'child', name: 'Child', parentId: 'parent' },
+    ];
+    const pages = [{ id: 'p1', title: 'Deep', folderId: 'child' }];
+    const result = buildTreeRootFromApi(folders, pages);
+    const parent = result.children.find((c) => c.id === 'parent');
+    const child = parent?.children?.find((c) => c.id === 'child');
+    expect(child).toBeDefined();
+    expect(child?.children?.[0]).toMatchObject({ id: 'p1', pageId: 'p1' });
+  });
+
+  it('silently drops a page whose folderId references an unknown folder', () => {
+    const pages = [{ id: 'p1', title: 'Orphan', folderId: 'non-existent' }];
+    const result = buildTreeRootFromApi([], pages);
+    // Page has a non-null folderId but no matching folder exists — it is dropped.
+    expect(result.children).toHaveLength(0);
+  });
+
+  it('mixes root pages and folders in one result', () => {
+    const folders = [{ id: 'f1', name: 'FolderX' }];
+    const pages = [
+      { id: 'p1', title: 'Root page' },
+      { id: 'p2', title: 'Folder page', folderId: 'f1' },
+    ];
+    const result = buildTreeRootFromApi(folders, pages);
+    const ids = result.children.map((c) => c.id);
+    expect(ids).toContain('f1');
+    expect(ids).toContain('p1');
+    expect(ids).not.toContain('p2'); // nested, not at root
   });
 });

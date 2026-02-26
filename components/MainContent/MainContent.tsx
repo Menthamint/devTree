@@ -21,23 +21,28 @@
  *   - Animate the stats footer appearance with a CSS transition.
  */
 
-import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { Download, Filter, Menu, Save, Tag, X } from 'lucide-react';
+import { useEffect, useId, useRef, useState } from 'react';
+import { Bookmark, Download, Edit2, Filter, Menu, Save, Search, Tag, X, XCircle } from 'lucide-react';
+import type { JSONContent } from '@tiptap/react';
+import type { Editor } from '@tiptap/core';
 
 import { useI18n } from '@/lib/i18n';
-import { computePageStats, downloadMarkdown } from '@/lib/pageUtils';
+import { downloadMarkdown, extractInlineTagsFromContent } from '@/lib/pageUtils';
 import { useSettingsStore } from '@/lib/settingsStore';
 import { cn } from '@/lib/utils';
 
-import { BlockEditor } from './BlockEditor';
 import { PageMeta } from './PageMeta';
 import { PageTitle } from './PageTitle';
-import type { Block, Page } from './types';
+import type { Page } from './types';
+import { PageEditor } from '@/components/editor/PageEditor';
+import { BookmarksPanel } from '@/components/editor/BookmarksPanel';
+import { EditorToolbar } from '@/components/editor/EditorToolbar';
 
 const I18N_EXPORT_MARKDOWN = 'main.exportMarkdown';
 
 type MainContentProps = Readonly<{
   page: Page | null;
+  isPageLoading?: boolean;
   breadcrumbs?: Array<{ id: string; label: string; isCurrent: boolean }>;
   onBreadcrumbClick?: (id: string) => void;
   onSave?: () => void;
@@ -51,15 +56,22 @@ type MainContentProps = Readonly<{
   /** Called when the title input loses focus — persists the title to the server. */
   onTitleBlur?: () => void;
   titleHasError?: boolean;
-  onBlocksChange?: (blocks: Block[]) => void;
   /** Called when the user adds or removes a tag on the current page. */
   onTagsChange?: (tags: string[]) => void;
+  /** All unique tags from every page — used for autocomplete in the tag bar. */
+  allTagSuggestions?: string[];
   /** Called when the hamburger button is pressed on mobile. */
   onMobileSidebarToggle?: () => void;
+  // ── Unified editor edit-mode ──────────────────────────────────────────────
+  /** True when the page is in active editing mode. */
+  isEditMode?: boolean;
+  onEditModeChange?: (v: boolean) => void;
+  /** Called by PageEditor for every document change in edit mode. */
+  onContentChange?: (json: JSONContent) => void;
 }>;
-
 export function MainContent({
   page,
+  isPageLoading = false,
   breadcrumbs = [],
   onBreadcrumbClick,
   onSave,
@@ -68,31 +80,24 @@ export function MainContent({
   onTitleChange,
   onTitleBlur,
   titleHasError = false,
-  onBlocksChange,
   onTagsChange,
+  allTagSuggestions = [],
   onMobileSidebarToggle,
+  isEditMode = false,
+  onEditModeChange,
+  onContentChange,
 }: MainContentProps) {
   const { t } = useI18n();
   const { tagsPerPageEnabled, tagsPerBlockEnabled } = useSettingsStore();
 
-  /**
-   * Active block-tag filters.
-   *
-   * WHY store `{ pageId, tags }` together rather than a plain `string[]`?
-   *   We want the filter to reset automatically when the user navigates to a
-   *   different page, without using `useEffect` + `setState` (which creates an
-   *   extra render cycle). By pairing the tags with the pageId they belong to,
-   *   `activeBlockTags` is derived inline: if the stored pageId doesn't match
-   *   the current page, it evaluates to `[]` — no effect needed.
-   */
-  const [blockTagFilter, setBlockTagFilter] = useState<{ pageId: string | undefined; tags: string[] }>(
-    { pageId: undefined, tags: [] },
-  );
-  const pageId = page?.id;
-  // Tags are only active for the page they were set on — automatically [] otherwise
-  const activeBlockTags = blockTagFilter.pageId === pageId ? blockTagFilter.tags : [];
-  const setActiveBlockTags = (tags: string[]) => setBlockTagFilter({ pageId, tags });
+  /** Editor instance forwarded from PageEditor — used to render the toolbar here */
+  const [editorInstance, setEditorInstance] = useState<Editor | null>(null);
+  const [bookmarksOpen, setBookmarksOpen] = useState(false);
 
+  /** Active inline-tag filter — tags clicked in the per-page tag filter bar. */
+  const [activeFilterTags, setActiveFilterTags] = useState<string[]>([]);
+  /** All inline tags extracted from the current page's Tiptap content. */
+  const [pageInlineTags, setPageInlineTags] = useState<string[]>([]);
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -104,28 +109,138 @@ export function MainContent({
     return () => globalThis.removeEventListener('keydown', handleKeyDown);
   }, [onSave]);
 
-  const stats = useMemo(
-    () => (page ? computePageStats(page) : null),
-    [page],
-  );
+  // ── Extract inline tags — from page.content immediately, then live from editor
+  // Primary: derive directly from the stored JSON so tags are visible before
+  // the Tiptap instance fires its first 'update' event.
+  useEffect(() => {
+    if (!page?.content) { setPageInlineTags([]); return; }
+    setPageInlineTags(extractInlineTagsFromContent(page.content as Record<string, unknown>));
+  }, [page?.content, page?.id]);
 
-  /**
-   * All unique tags used across all blocks on the current page, sorted
-   * alphabetically. Used to populate the block-tag filter strip.
-   *
-   * WHY derive here instead of inside BlockEditor?
-   *   The filter strip lives in MainContent (above BlockEditor), so it needs
-   *   the tag list before BlockEditor renders. Deriving here keeps BlockEditor
-   *   focused on rendering/editing and avoids prop-drilling back upward.
-   */
-  const allBlockTags = useMemo(() => {
-    if (!page) return [];
-    const set = new Set<string>();
-    for (const block of page.blocks) {
-      for (const tag of block.tags ?? []) set.add(tag);
-    }
-    return [...set].sort((a, b) => a.localeCompare(b));
-  }, [page]);
+  // Secondary: keep in sync while editing (editor fires 'update' on every change).
+  useEffect(() => {
+    if (!editorInstance) return;
+    const update = () => {
+      const json = editorInstance.getJSON();
+      setPageInlineTags(extractInlineTagsFromContent(json as Record<string, unknown>));
+    };
+    editorInstance.on('update', update);
+    return () => { editorInstance.off('update', update); };
+  }, [editorInstance]);
+
+  // ── Reset filter when page changes ───────────────────────────────────────
+  useEffect(() => {
+    setActiveFilterTags([]);
+  }, [page?.id]);
+
+  useEffect(() => {
+    setBookmarksOpen(false);
+  }, [page?.id]);
+
+  let headerTitleNode: React.ReactNode;
+  if (isPageLoading) {
+    headerTitleNode = (
+      <div data-testid="main-content-header-skeleton" className="h-5 w-56 animate-pulse rounded-md bg-muted" />
+    );
+  } else if (breadcrumbs.length > 0) {
+    headerTitleNode = (
+      <nav aria-label="Breadcrumb" className="min-w-0" data-testid="page-header-title">
+        <ol className="flex min-w-0 items-center gap-1 text-sm">
+          {breadcrumbs.map((crumb, index) => (
+            <li key={crumb.id} className="flex min-w-0 items-center gap-1">
+              {index > 0 && <span className="text-muted-foreground">/</span>}
+              {crumb.isCurrent ? (
+                <span
+                  className="min-w-0 truncate rounded px-1 py-0.5 font-medium text-foreground"
+                  aria-current="page"
+                >
+                  {crumb.label}
+                </span>
+              ) : (
+                <button
+                  type="button"
+                  className={cn(
+                    'min-w-0 truncate rounded px-1 py-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground',
+                  )}
+                  onClick={() => onBreadcrumbClick?.(crumb.id)}
+                >
+                  {crumb.label}
+                </button>
+              )}
+            </li>
+          ))}
+        </ol>
+      </nav>
+    );
+  } else {
+    headerTitleNode = (
+      <span className="min-w-0 truncate text-sm font-medium text-foreground" data-testid="page-header-title">
+        {page?.title ?? t('main.selectPage')}
+      </span>
+    );
+  }
+
+  let pageBodyNode: React.ReactNode;
+  if (isPageLoading) {
+    pageBodyNode = <NotebookPageSkeleton />;
+  } else if (page) {
+    pageBodyNode = (
+      <div className="flex flex-col gap-4">
+        <PageTitle
+          page={page}
+          readOnly={!isEditMode}
+          onTitleChange={isEditMode ? onTitleChange : undefined}
+          onTitleBlur={isEditMode ? onTitleBlur : undefined}
+          invalid={titleHasError}
+        />
+
+        {/* Page-level tag bar — always visible; editable only in edit mode */}
+        {tagsPerPageEnabled && (
+          <TagBar
+            tags={page.tags ?? []}
+            isEditable={isEditMode}
+            suggestions={allTagSuggestions}
+            onChange={onTagsChange ?? (() => {})}
+          />
+        )}
+
+        {/* Creation and last-edit timestamps */}
+        <PageMeta createdAt={page.createdAt} updatedAt={page.updatedAt} />
+
+        {/* Per-page inline tag filter — always shown when the feature is enabled */}
+        {tagsPerBlockEnabled && (
+          <BlockTagFilter
+            allTags={pageInlineTags}
+            activeTags={activeFilterTags}
+            onChange={setActiveFilterTags}
+            totalBlocks={pageInlineTags.length}
+            visibleBlocks={activeFilterTags.length > 0 ? activeFilterTags.length : pageInlineTags.length}
+          />
+        )}
+
+        {/* Unified Tiptap editor */}
+        <PageEditor
+          content={page.content ?? null}
+          editable={isEditMode}
+          onChange={onContentChange}
+          pageId={page.id}
+          onEditorReady={setEditorInstance}
+          activeFilterTags={activeFilterTags}
+        />
+      </div>
+    );
+  } else {
+    pageBodyNode = (
+      <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card py-16 text-center">
+        <p className="text-sm font-medium text-muted-foreground">
+          {t('main.emptyHint')}
+        </p>
+        <p className="mt-1 text-xs text-muted-foreground">
+          {t('main.emptyHint2')}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <main className="flex h-full min-w-0 flex-1 flex-col overflow-hidden bg-background text-foreground">
@@ -143,45 +258,14 @@ export function MainContent({
             </button>
           )}
           <span className="sr-only">{page?.title ?? t('main.selectPage')}</span>
-          {breadcrumbs.length > 0 ? (
-            <nav aria-label="Breadcrumb" className="min-w-0">
-              <ol className="flex min-w-0 items-center gap-1 text-sm">
-                {breadcrumbs.map((crumb, index) => (
-                  <li key={crumb.id} className="flex min-w-0 items-center gap-1">
-                    {index > 0 && <span className="text-muted-foreground">/</span>}
-                    {crumb.isCurrent ? (
-                      <span
-                        className="min-w-0 truncate rounded px-1 py-0.5 font-medium text-foreground"
-                        aria-current="page"
-                      >
-                        {crumb.label}
-                      </span>
-                    ) : (
-                      <button
-                        type="button"
-                        className={cn(
-                          'min-w-0 truncate rounded px-1 py-0.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground',
-                        )}
-                        onClick={() => onBreadcrumbClick?.(crumb.id)}
-                      >
-                        {crumb.label}
-                      </button>
-                    )}
-                  </li>
-                ))}
-              </ol>
-            </nav>
-          ) : (
-            <span className="min-w-0 truncate text-sm font-medium text-foreground">
-              {page?.title ?? t('main.selectPage')}
-            </span>
-          )}
+          {headerTitleNode}
         </div>
 
-        {page && (
+        {page && !isPageLoading && (
           <div className="flex shrink-0 items-center gap-2">
             <button
               type="button"
+              data-testid="export-markdown-button"
               title={t(I18N_EXPORT_MARKDOWN)}
               aria-label={t(I18N_EXPORT_MARKDOWN)}
               className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
@@ -190,93 +274,102 @@ export function MainContent({
               <Download size={14} />
               <span className="hidden sm:inline">{t(I18N_EXPORT_MARKDOWN)}</span>
             </button>
-            <button
-              type="button"
-              aria-label={t('main.savePage')}
-              data-testid="save-page-button"
-              className="inline-flex min-w-22 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-card disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
-              onClick={onSave}
-              disabled={!isDirty}
-            >
-              <Save size={16} aria-hidden />
-              {saved ? t('main.saved') : t('main.save')}
-            </button>
+
+            {editorInstance && (
+              <div className="relative">
+                <button
+                  type="button"
+                  title="Bookmarks"
+                  aria-label="Bookmarks"
+                  className="flex items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => setBookmarksOpen((v) => !v)}
+                >
+                  <Bookmark size={14} />
+                  <span className="hidden sm:inline">Bookmarks</span>
+                </button>
+
+                {bookmarksOpen && (
+                  <>
+                    <div className="fixed inset-0 z-10" aria-hidden onClick={() => setBookmarksOpen(false)} />
+                    <div className="absolute right-0 top-full z-20 mt-1">
+                      <BookmarksPanel editor={editorInstance} onClose={() => setBookmarksOpen(false)} />
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+
+            {/* Edit-mode toggle — Edit/Save/Cancel */}
+            {isEditMode ? (
+              <>
+                <button
+                  type="button"
+                  aria-label="Cancel editing"
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-border px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => onEditModeChange?.(false)}
+                >
+                  <XCircle size={15} aria-hidden />
+                  <span className="hidden sm:inline">Cancel</span>
+                </button>
+                <button
+                  type="button"
+                  aria-label={t('main.savePage')}
+                  data-testid="save-page-button"
+                  className="inline-flex min-w-22 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-card disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                  onClick={onSave}
+                  disabled={!isDirty}
+                >
+                  <Save size={16} aria-hidden />
+                  {saved ? t('main.saved') : t('main.save')}
+                </button>
+              </>
+            ) : (
+              <button
+                type="button"
+                aria-label="Edit page"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-card dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                onClick={() => onEditModeChange?.(true)}
+              >
+                <Edit2 size={15} aria-hidden />
+                <span className="hidden sm:inline">Edit</span>
+              </button>
+            )}
           </div>
         )}
       </header>
 
+      {/* ───── Formatting toolbar — shown as a second bar when editing ───── */}
+      {isEditMode && editorInstance && (
+        <div className="shrink-0 border-b border-border bg-card/95 backdrop-blur supports-backdrop-filter:bg-card/60">
+          <EditorToolbar editor={editorInstance} blockId={page?.id} />
+        </div>
+      )}
+
       {/* ───── Scrollable content area ───── */}
-      <div className="flex-1 overflow-y-auto p-3 text-foreground sm:p-6 md:p-8">
-        <div className="mx-auto w-full pr-7.5">
-          {page ? (
-            <div className="flex flex-col gap-4">
-              <PageTitle
-                page={page}
-                readOnly={!onTitleChange}
-                onTitleChange={onTitleChange}
-                onTitleBlur={onTitleBlur}
-                invalid={titleHasError}
-              />
-
-              {/* Page-level tag bar — hidden when tagsPerPageEnabled is false */}
-              {tagsPerPageEnabled && onTagsChange && (
-                <TagBar
-                  tags={page.tags ?? []}
-                  onChange={onTagsChange}
-                />
-              )}
-
-              {/* Creation and last-edit timestamps */}
-              <PageMeta createdAt={page.createdAt} updatedAt={page.updatedAt} />
-
-              {/* Block tag filter strip — hidden when tagsPerBlockEnabled is false */}
-              {tagsPerBlockEnabled && allBlockTags.length > 0 && (
-                <BlockTagFilter
-                  allTags={allBlockTags}
-                  activeTags={activeBlockTags}
-                  onChange={setActiveBlockTags}
-                  totalBlocks={page.blocks.length}
-                  visibleBlocks={
-                    activeBlockTags.length === 0
-                      ? page.blocks.length
-                      : page.blocks.filter((b) =>
-                          activeBlockTags.some((t) => (b.tags ?? []).includes(t)),
-                        ).length
-                  }
-                />
-              )}
-
-              <BlockEditor
-                blocks={page.blocks}
-                onChange={onBlocksChange ?? (() => {})}
-                filterTags={activeBlockTags.length > 0 ? activeBlockTags : undefined}
-                showBlockTags={tagsPerBlockEnabled}
-              />
-
-              {stats && stats.blockCount > 0 && (
-                <div className="flex flex-wrap items-center gap-4 border-t border-border pt-4 text-xs text-muted-foreground">
-                  <span>{t('main.wordCount', { count: stats.wordCount })}</span>
-                  <span>·</span>
-                  <span>{t('main.readingTime', { min: stats.readingTimeMin })}</span>
-                  <span>·</span>
-                  <span>{t('main.blockCount', { count: stats.blockCount })}</span>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-border bg-card py-16 text-center">
-              <p className="text-sm font-medium text-muted-foreground">
-                {t('main.emptyHint')}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {t('main.emptyHint2')}
-              </p>
-            </div>
-          )}
+      <div className="flex-1 overflow-y-auto py-3 text-foreground sm:py-6 md:py-8">
+        <div className="mx-auto w-full px-3 pr-7.5 sm:px-6 md:px-8">
+          {pageBodyNode}
         </div>
       </div>
 
     </main>
+  );
+}
+
+function NotebookPageSkeleton() {
+  return (
+    <div className="flex flex-col gap-4" data-testid="main-content-page-skeleton" aria-live="polite" aria-busy="true">
+      <div className="h-10 w-2/3 animate-pulse rounded-lg bg-muted" />
+      <div className="h-7 w-80 animate-pulse rounded-lg bg-muted" />
+      <div className="h-5 w-56 animate-pulse rounded-md bg-muted" />
+      <div className="space-y-3">
+        <div className="h-5 w-full animate-pulse rounded-md bg-muted" />
+        <div className="h-5 w-full animate-pulse rounded-md bg-muted" />
+        <div className="h-5 w-5/6 animate-pulse rounded-md bg-muted" />
+        <div className="h-5 w-full animate-pulse rounded-md bg-muted" />
+        <div className="h-5 w-4/5 animate-pulse rounded-md bg-muted" />
+      </div>
+    </div>
   );
 }
 
@@ -326,13 +419,31 @@ function tagColour(tag: string): string {
 type TagBarProps = Readonly<{
   tags: string[];
   onChange: (tags: string[]) => void;
+  /**
+   * When false the bar is read-only: chips are shown but the input and ×
+   * remove buttons are hidden. Defaults to true.
+   */
+  isEditable?: boolean;
+  /**
+   * All unique tags from the workspace used for autocomplete suggestions.
+   */
+  suggestions?: string[];
 }>;
 
-function TagBar({ tags, onChange }: TagBarProps) {
+function TagBar({ tags, onChange, isEditable = true, suggestions = [] }: TagBarProps) {
   const { t } = useI18n();
   const [inputValue, setInputValue] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const inputId = useId();
   const inputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLUListElement>(null);
+
+  // Suggestions filtered by current input, excluding already-added tags
+  const filteredSuggestions = suggestions.filter(
+    (s) =>
+      s.toLowerCase().includes(inputValue.toLowerCase()) &&
+      !tags.includes(s),
+  );
 
   const addTag = (raw: string) => {
     const candidates = raw
@@ -341,9 +452,31 @@ function TagBar({ tags, onChange }: TagBarProps) {
       .filter((s) => s.length > 0 && !tags.includes(s));
     if (candidates.length > 0) onChange([...tags, ...candidates]);
     setInputValue('');
+    setShowSuggestions(false);
   };
 
   const removeTag = (tag: string) => onChange(tags.filter((t_) => t_ !== tag));
+
+  // Read-only view — just chips, no input
+  if (!isEditable) {
+    if (tags.length === 0) return null;
+    return (
+      <div className="flex flex-wrap items-center gap-1.5 py-0.5">
+        <Tag size={13} className="shrink-0 text-muted-foreground/60" aria-hidden />
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className={cn(
+              'flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium',
+              tagColour(tag),
+            )}
+          >
+            {tag}
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   return (
     /**
@@ -354,19 +487,9 @@ function TagBar({ tags, onChange }: TagBarProps) {
      * "×" button, not the text input. This makes clicking the Tag icon (or any
      * whitespace in the row) accidentally remove the first tag.
      *
-     * We explicitly forward clicks to the input via onMouseDown + focus().
-     * onMouseDown (not onClick) fires before the blur event on the input,
-     * preventing the input from losing focus when clicking tag chips.
+     * We explicitly forward clicks to the input via onClick + focus().
      */
-    <div
-      className="flex cursor-text flex-wrap items-center gap-1.5 rounded-lg border border-transparent py-0.5 focus-within:border-border"
-    >
-      {/**
-       * The Tag icon acts as a visual indicator and a click target to focus the
-       * input. We use onClick here (not the label trick) because the div must
-       * not carry a role or event handler to satisfy SonarQube's accessibility
-       * rules. The icon is the only intentional focus-trigger outside the input.
-       */}
+    <div className="relative flex flex-wrap items-center gap-1.5 rounded-lg border border-transparent py-0.5 focus-within:border-border">
       <Tag
         size={13}
         className="shrink-0 cursor-pointer text-muted-foreground/60 hover:text-muted-foreground"
@@ -403,8 +526,12 @@ function TagBar({ tags, onChange }: TagBarProps) {
         aria-label={t('main.addTag')}
         value={inputValue}
         placeholder={tags.length === 0 ? t('main.addTag') : ''}
-        className="min-w-[80px] flex-1 bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/50"
-        onChange={(e) => setInputValue(e.target.value)}
+        className="min-w-20 flex-1 bg-transparent text-xs text-muted-foreground outline-none placeholder:text-muted-foreground/50"
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          setShowSuggestions(true);
+        }}
+        onFocus={() => setShowSuggestions(true)}
         onKeyDown={(e) => {
           if (e.key === 'Enter' || e.key === ',') {
             e.preventDefault();
@@ -413,12 +540,50 @@ function TagBar({ tags, onChange }: TagBarProps) {
           if (e.key === 'Backspace' && inputValue === '' && tags.length > 0) {
             removeTag(tags.at(-1) ?? '');
           }
+          if (e.key === 'Escape') setShowSuggestions(false);
         }}
-        onBlur={() => { if (inputValue.trim()) addTag(inputValue); }}
+        onBlur={(e) => {
+          // Don't close if clicking inside the suggestions list
+          if (suggestionsRef.current?.contains(e.relatedTarget as Node)) return;
+          if (inputValue.trim()) addTag(inputValue);
+          else setShowSuggestions(false);
+        }}
       />
+
+      {/* Autocomplete suggestions dropdown */}
+      {showSuggestions && filteredSuggestions.length > 0 && (
+        <ul
+          ref={suggestionsRef}
+          aria-label="Tag suggestions"
+          className="absolute left-0 top-full z-50 mt-1 max-h-40 w-48 overflow-y-auto rounded-lg border border-border bg-popover py-1 shadow-md"
+        >
+          {filteredSuggestions.slice(0, 20).map((s) => (
+            <li key={s}>
+              <button
+                type="button"
+                className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-xs text-foreground hover:bg-accent hover:text-accent-foreground"
+                onMouseDown={(e) => {
+                  e.preventDefault(); // don't blur the input
+                  addTag(s);
+                  inputRef.current?.focus();
+                }}
+              >
+                <span
+                  className={cn(
+                    'h-2 w-2 shrink-0 rounded-full',
+                    tagColour(s).split(' ')[0],
+                  )}
+                />
+                {s}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   );
 }
+
 
 // ─── BlockTagFilter ───────────────────────────────────────────────────────────
 
@@ -461,7 +626,12 @@ function BlockTagFilter({
   visibleBlocks,
 }: BlockTagFilterProps) {
   const { t } = useI18n();
+  const [searchQuery, setSearchQuery] = useState('');
   const isFiltering = activeTags.length > 0;
+
+  const visibleTags = searchQuery.trim()
+    ? allTags.filter((tag) => tag.toLowerCase().includes(searchQuery.toLowerCase()))
+    : allTags;
 
   const toggle = (tag: string) =>
     onChange(
@@ -471,53 +641,82 @@ function BlockTagFilter({
     );
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
-      {/* Label */}
-      <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
-        <Filter size={12} aria-hidden />
-        {t('block.filterByTag')}
-      </span>
+    <div className="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2">
+      {/* Header row: label + search + clear */}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex shrink-0 items-center gap-1.5 text-xs font-medium text-muted-foreground">
+          <Filter size={12} aria-hidden />
+          {t('block.filterByTag')}
+        </span>
 
-      {/* Tag chips */}
-      <div className="flex flex-1 flex-wrap items-center gap-1.5">
-        {allTags.map((tag) => {
-          const isActive = activeTags.includes(tag);
-          return (
+        {/* Search input */}
+        <div className="flex min-w-28 flex-1 items-center gap-1 rounded-md border border-border bg-background px-2 py-0.5">
+          <Search size={11} className="shrink-0 text-muted-foreground/60" aria-hidden />
+          <input
+            type="text"
+            aria-label="Search tags"
+            placeholder="Search tags…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="min-w-0 flex-1 bg-transparent text-xs text-foreground outline-none placeholder:text-muted-foreground/50"
+          />
+          {searchQuery && (
             <button
-              key={tag}
               type="button"
-              aria-pressed={isActive}
-              onClick={() => toggle(tag)}
-              className={cn(
-                'rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
-                isActive
-                  ? 'border-indigo-400 bg-indigo-600 text-white dark:border-indigo-500 dark:bg-indigo-500'
-                  : 'border-border bg-card text-muted-foreground hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300',
-              )}
+              aria-label="Clear search"
+              className="shrink-0 text-muted-foreground/60 hover:text-muted-foreground"
+              onClick={() => setSearchQuery('')}
             >
-              {tag}
+              <X size={10} />
             </button>
-          );
-        })}
+          )}
+        </div>
+
+        {/* Status + clear filter */}
+        {isFiltering && (
+          <div className="flex shrink-0 items-center gap-2">
+            <span className="text-xs text-muted-foreground">
+              {t('block.filterCount', { visible: visibleBlocks, total: totalBlocks })}
+            </span>
+            <button
+              type="button"
+              onClick={() => onChange([])}
+              className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-700 dark:hover:bg-red-950 dark:hover:text-red-400"
+              title={t('block.clearFilter')}
+            >
+              <X size={10} />
+              {t('block.clearFilter')}
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Status + clear */}
-      {isFiltering && (
-        <div className="flex shrink-0 items-center gap-2">
-          <span className="text-xs text-muted-foreground">
-            {t('block.filterCount', { visible: visibleBlocks, total: totalBlocks })}
-          </span>
-          <button
-            type="button"
-            onClick={() => onChange([])}
-            className="flex items-center gap-1 rounded-full border border-border px-2 py-0.5 text-xs text-muted-foreground transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-700 dark:hover:bg-red-950 dark:hover:text-red-400"
-            title={t('block.clearFilter')}
-          >
-            <X size={10} />
-            {t('block.clearFilter')}
-          </button>
-        </div>
-      )}
+      {/* Tag chips */}
+      <div className="flex flex-wrap items-center gap-1.5">
+        {visibleTags.length === 0 ? (
+          <span className="text-xs text-muted-foreground/60">No tags match &ldquo;{searchQuery}&rdquo;</span>
+        ) : (
+          visibleTags.map((tag) => {
+            const isActive = activeTags.includes(tag);
+            return (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => toggle(tag)}
+                className={cn(
+                  'rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+                  isActive
+                    ? 'border-indigo-400 bg-indigo-600 text-white dark:border-indigo-500 dark:bg-indigo-500'
+                    : 'border-border bg-card text-muted-foreground hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300',
+                )}
+              >
+                {tag}
+              </button>
+            );
+          })
+        )}
+      </div>
     </div>
   );
 }

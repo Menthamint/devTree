@@ -17,9 +17,17 @@ public class TagTests : E2ETestBase
     // ── Tag bar visibility ────────────────────────────────────────────────────
 
     [Test]
-    public async Task TagBar_IsVisibleOnPageOpen()
+    public async Task TagBar_ShowsChipsInReadMode()
     {
-        // The tag input is always rendered below the page title
+        // React Hooks page has tags — they should be visible as read-only chips
+        // without entering edit mode.
+        await Expect(Page.GetByText("react").First).ToBeVisibleAsync();
+    }
+
+    [Test]
+    public async Task TagBar_InputVisibleInEditMode()
+    {
+        await App.EnterPageEditModeAsync();
         var tagInput = Page.GetByTestId("page-tag-input");
         await Expect(tagInput).ToBeVisibleAsync();
     }
@@ -37,6 +45,7 @@ public class TagTests : E2ETestBase
     [Test]
     public async Task AddTag_AppearsAsChip()
     {
+        await App.EnterPageEditModeAsync();
         var tagInput = Page.GetByTestId("page-tag-input");
         await tagInput.ClickAsync();
         await tagInput.FillAsync("algorithms");
@@ -49,6 +58,7 @@ public class TagTests : E2ETestBase
     [Test]
     public async Task AddTag_IsCasedToLowercase()
     {
+        await App.EnterPageEditModeAsync();
         var tagInput = Page.GetByTestId("page-tag-input");
         await tagInput.ClickAsync();
         await tagInput.FillAsync("TypeScript");
@@ -64,6 +74,7 @@ public class TagTests : E2ETestBase
         await App.Sidebar.CreatePageAsync();
         await Page.WaitForTimeoutAsync(300);
 
+        await App.EnterPageEditModeAsync();
         var tagInput = Page.GetByTestId("page-tag-input");
         await tagInput.ClickAsync();
         await tagInput.FillAsync("performance");
@@ -78,6 +89,7 @@ public class TagTests : E2ETestBase
     [Test]
     public async Task RemoveTag_ChipDisappearsAfterClick()
     {
+        await App.EnterPageEditModeAsync();
         // "react" is a pre-loaded tag on the React Hooks page
         var removeBtn = Page.GetByRole(AriaRole.Button, new() { Name = "Remove tag react" });
         await removeBtn.ClickAsync();

@@ -48,13 +48,13 @@ export const CommentMark = Mark.create({
     return {
       id: {
         default: null,
-        parseHTML: (el) => (el as HTMLElement).dataset.commentId ?? null,
+        parseHTML: (el) => el.dataset.commentId ?? null,
         renderHTML: (attrs) => (attrs.id ? { 'data-comment-id': attrs.id } : {}),
       },
       commentText: {
         default: '',
         parseHTML: (el) => {
-          const raw = (el as HTMLElement).dataset.commentText;
+          const raw = el.dataset.commentText;
           return raw ? unescapeCommentFromAttr(raw) : '';
         },
         renderHTML: (attrs) =>
@@ -70,10 +70,14 @@ export const CommentMark = Mark.create({
   },
 
   renderHTML({ HTMLAttributes }) {
+    const commentText = typeof HTMLAttributes['data-comment-text'] === 'string'
+      ? unescapeCommentFromAttr(HTMLAttributes['data-comment-text'])
+      : '';
     return [
       'span',
       mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, {
         class: 'tiptap-comment', // Styled in globals.css (underline + background) so comment spans are visible.
+        title: commentText,
       }),
       0,
     ];

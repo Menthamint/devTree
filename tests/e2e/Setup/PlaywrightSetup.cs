@@ -70,6 +70,34 @@ public abstract class E2ETestBase : PageTest
         ");
     }
 
+    /// <summary>
+    /// After every test restore the user's locale to English so locale-changing
+    /// tests (e.g. SwitchToUkrainian_TranslatesUI) don't bleed state into
+    /// subsequent tests that expect English UI strings.
+    /// </summary>
+    [TearDown]
+    public async Task TearDownResetLocaleAsync()
+    {
+        try
+        {
+            await Page.EvaluateAsync(@"
+                (async () => {
+                    try {
+                        await fetch('/api/user/preferences', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ locale: 'en' })
+                        });
+                    } catch (_) {}
+                })()
+            ");
+        }
+        catch
+        {
+            // Best-effort — ignore errors (e.g. page already navigated away).
+        }
+    }
+
     private async Task EnsureAuthenticatedAsync(string email, string password, bool hasProvidedCredentials)
     {
         var loginPage = new LoginPage(Page);

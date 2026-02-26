@@ -95,6 +95,9 @@ model Page {
   title     String
   order     Int      @default(0)
   tags      String[]  @default([])
+  /// Unified Tiptap JSON document (new editor). Null for pages still using the
+  /// legacy block-based format. When present the blocks relation is ignored.
+  content   Json?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

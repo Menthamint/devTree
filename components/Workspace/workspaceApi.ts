@@ -6,6 +6,7 @@
  */
 
 import type { Block, Page } from '@/components/MainContent';
+import type { JSONContent } from '@tiptap/react';
 
 export class WorkspaceApiError extends Error {
   readonly status: number;
@@ -59,6 +60,8 @@ export type ApiPage = {
   folderId: string | null;
   ownerId: string;
   blocks: ApiBlock[];
+  /** Unified Tiptap JSON document. Null for pages still using the legacy block format. */
+  content: JSONContent | null;
   createdAt: string;
   updatedAt: string;
 };
@@ -94,6 +97,7 @@ export function apiPageToPage(p: ApiPage): Page {
     title: p.title,
     blocks: (p.blocks ?? []).map(apiBlockToBlock),
     tags: p.tags ?? [],
+    content: p.content ?? null,
     createdAt: p.createdAt,
     updatedAt: p.updatedAt,
   };
@@ -122,7 +126,7 @@ export async function createPage(
 
 export async function updatePage(
   pageId: string,
-  data: { title?: string; order?: number; tags?: string[] },
+  data: { title?: string; order?: number; tags?: string[]; content?: JSONContent | null },
 ): Promise<ApiPage> {
   const res = await fetch(`/api/pages/${pageId}`, {
     method: 'PUT',
@@ -136,6 +140,14 @@ export async function updatePage(
 export async function deletePage(pageId: string): Promise<void> {
   const res = await fetch(`/api/pages/${pageId}`, { method: 'DELETE' });
   await assertOk(res, `DELETE /api/pages/${pageId} → ${res.status}`);
+}
+
+/** Save just the unified Tiptap JSON content for a page (convenience wrapper). */
+export async function savePageContent(
+  pageId: string,
+  content: JSONContent,
+): Promise<ApiPage> {
+  return updatePage(pageId, { content });
 }
 
 export async function movePage(

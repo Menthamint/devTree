@@ -36,7 +36,74 @@
  */
 
 import type { TreeRoot, TreeNode } from './treeTypes';
-import { ROOT_DROP_TARGET_ID } from './treeTypes';
+import { ROOT_ID, ROOT_DROP_TARGET_ID } from './treeTypes';
+
+// ─── API-to-tree builders ─────────────────────────────────────────────────────
+
+/** Shape of a raw page record returned by GET /api/pages or GET /api/folders. */
+type ApiPageStub = {
+  id: string;
+  title: string;
+  folderId?: string | null;
+};
+
+/** Shape of a raw folder record returned by GET /api/folders. */
+type ApiFolderStub = {
+  id: string;
+  name: string;
+  parentId?: string | null;
+};
+
+function buildFolderNode(
+  folder: ApiFolderStub,
+  allFolders: ApiFolderStub[],
+  allPages: ApiPageStub[],
+): TreeNode {
+  const childFolders = allFolders
+    .filter((f) => f.parentId === folder.id)
+    .map((f) => buildFolderNode(f, allFolders, allPages));
+
+  const folderPages = allPages
+    .filter((p) => p.folderId === folder.id)
+    .map((p) => ({ id: p.id, name: p.title, pageId: p.id }));
+
+  return {
+    id: folder.id,
+    name: folder.name,
+    children: [...childFolders, ...folderPages],
+  };
+}
+
+/**
+ * Build a `TreeRoot` from the raw API response arrays.
+ *
+ * Extracted from `Workspace.tsx` so it can be unit-tested independently and
+ * reused by the `useWorkspaceData` hook.
+ *
+ * @param folders - All folder records from GET /api/folders
+ * @param pages   - All page stubs from GET /api/pages
+ */
+export function buildTreeRootFromApi(
+  folders: ApiFolderStub[],
+  pages: ApiPageStub[],
+): TreeRoot {
+  const rootPages = pages.filter((p) => !p.folderId);
+  const folderNodes = folders
+    .filter((f) => !f.parentId)
+    .map((f) => buildFolderNode(f, folders, pages));
+
+  return {
+    id: ROOT_ID,
+    name: 'My workspace',
+    children: [
+      ...folderNodes,
+      ...rootPages.map((p) => ({ id: p.id, name: p.title, pageId: p.id })),
+    ],
+  };
+}
+
+/** Blank initial tree shown while data is loading. */
+export const emptyTreeRoot: TreeRoot = { id: ROOT_ID, name: 'My workspace', children: [] };
 
 /** Generate a unique id for folders (not used as page id) */
 export function newFolderId(): string {
