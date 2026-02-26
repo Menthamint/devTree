@@ -49,9 +49,9 @@ This document describes every major library and technology used in the project: 
 - **Why:** App Router is the recommended model; RSC and Route Handlers fit auth and API needs; Turbopack speeds up dev.
 - **Versions:** `next@16.x` (see `package.json`).
 - **Where:**
-  - `app/` — routes: `layout.tsx`, `page.tsx`, `login/`, `register/`, `forgot-password/`, `api/auth/`, `api/user/`.
+  - `app/` — routes: `layout.tsx`, `page.tsx`, `login/`, `register/`, `forgot-password/`, `notebook/` (main SPA by query param), `statistics/`, `p/[pageId]/` (short redirect), `pages/[pageId]/` (legacy redirect), `api/auth/`, `api/user/`, `api/pages/`, `api/folders/`, `api/block/`, `api/stats/`.
   - `app/layout.tsx` — root layout, fonts (Geist), `Providers`, `globals.css`.
-  - Middleware in `middleware.ts` for auth (redirect unauthenticated, 401 for API).
+  - Auth is enforced inline in each API route via `getToken` from `next-auth/jwt` (no middleware file).
 - **Key concepts:** Client components (`'use client'`) for interactivity; server components by default; `next/navigation` for `useRouter`, `useSearchParams`.
 
 ### React 19
@@ -131,11 +131,23 @@ This document describes every major library and technology used in the project: 
 - **Where:** `components/features/editor/extensions/CanvasNode.tsx`. Diagram state (elements + appState) is serialised to JSON and stored per-block in the node's attributes. Library items sync cross-device via `/api/user/libraries`.
 - **Coordinate fix:** Excalidraw caches `offsetLeft`/`offsetTop` for pointer math. An `onPointerDownCapture` handler on the wrapper div calls `refresh()` before each interaction so the coordinates are always correct even when lazy-loaded content above the block shifts it after mount.
 
-### @dnd-kit (core, sortable, modifiers, utilities)
+### Native HTML5 Drag & Drop
 
-- **What:** Accessible drag-and-drop for React (sensors, collision detection, modifiers).
-- **Why:** Keyboard and pointer support; `restrictToVerticalAxis` for block reorder.
-- **Where:** `BlockEditor.tsx` — `DndContext`, `SortableContext`, vertical list sortable; `BlockWrapper` as draggable. Tree DnD in `tree-view` (separate from dnd-kit for tree structure).
+- **What:** Browser-native `draggable` / `dragover` / `drop` events — no external DnD library.
+- **Why:** The only DnD surface is the file/folder tree; native drag API is sufficient and keeps the bundle lighter.
+- **Where:** `components/shared/ui/tree-view.tsx` — `draggable` prop per row, `onDocumentDrag` callback on the tree root, internal `draggedItem` state for highlighting drop targets.
+
+### Recharts 3
+
+- **What:** Composable chart library built on D3 and SVG.
+- **Why:** Paired with React; responsive containers, good TypeScript types.
+- **Where:** `components/features/Statistics/` — `DailyActivityChart` (bar chart), `TopicsBarChart`, `ContentTypeDonut` (pie chart). All charts wrapped in `<ResponsiveContainer>` for fluid sizing.
+
+### react-activity-calendar
+
+- **What:** GitHub-style activity heatmap calendar component.
+- **Why:** Provides the daily activity heat-map in the Statistics section without hand-rolling it.
+- **Where:** `components/features/Statistics/ActivityHeatmap.tsx` — consumes the `/api/stats/activity` endpoint.
 
 ---
 
@@ -149,7 +161,7 @@ This document describes every major library and technology used in the project: 
   - `app/api/auth/[...nextauth]/route.ts` — NextAuth config: providers (Credentials, Google, GitHub), PrismaAdapter, JWT strategy, session callback (merge DB name/image), pages (signIn: `/login`), error wrapper (JSON 500).
   - `app/login/page.tsx` — Login/register form, validation, password strength, OAuth buttons.
   - `app/api/auth/register/route.ts` — Registration (email, password rules, Prisma create).
-  - Middleware uses `getToken` from `next-auth/jwt` for route protection; API routes use `getToken({ req, secret })` for current user.
+  - No middleware file — each API route handler calls `getToken({ req, secret })` directly so protection is co-located with the handler.
 - **Session:** JWT stored in cookie; session callback reads `User.name` and `User.image` from DB so profile updates show without re-login.
 - **Env:** `AUTH_SECRET`, `NEXTAUTH_URL`, `GOOGLE_*`, `GITHUB_*`.
 
@@ -271,7 +283,9 @@ This document describes every major library and technology used in the project: 
 | @tiptap/* | Rich text | 3.x |
 | @monaco-editor/react | Code editor | 4.x |
 | @excalidraw/excalidraw | Diagramming canvas | 0.18.x |
-| @dnd-kit/* | Drag and drop | 6–10.x |
+| recharts | Statistics charts | 3.x |
+| react-activity-calendar | Activity heatmap | 3.x |
+| Native HTML5 drag API | Tree DnD | — |
 | zustand | Global state | 5.x |
 | vitest | Unit tests | 4.x |
 | @testing-library/react | Component tests | 16.x |

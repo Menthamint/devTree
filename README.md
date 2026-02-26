@@ -40,8 +40,10 @@ A **personal knowledge base** built as a learning project to explore modern full
 | Icons | [Lucide React](https://lucide.dev) | Consistent SVG icon set |
 | Rich text | [Tiptap 3](https://tiptap.dev) | Headless ProseMirror editor, extensible |
 | Code editor | [Monaco Editor](https://microsoft.github.io/monaco-editor/) | VS Code engine, syntax highlighting for 40+ languages |
-| Diagrams | [Mermaid.js 11](https://mermaid.js.org) | Text-to-diagram: flowcharts, sequence diagrams, ERDs |
-| Drag & drop | [@dnd-kit](https://dndkit.com) | Accessible DnD with pointer and keyboard sensors |
+| Diagrams / Canvas | [Excalidraw 0.18](https://excalidraw.com) | Infinite canvas drawing with native Mermaid insert |
+| Charts | [Recharts 3](https://recharts.org) | Composable charts for the Statistics section |
+| Activity calendar | [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar) | GitHub-style heatmap for daily activity |
+| Drag & drop | Native HTML5 drag API | Tree-view reordering without additional library |
 | Auth | [NextAuth v5](https://authjs.dev) | Google + GitHub OAuth, JWT sessions |
 | Database | [PostgreSQL](https://postgresql.org) + [Prisma 6](https://prisma.io) | Type-safe ORM, migrations |
 | Unit tests | [Vitest 4](https://vitest.dev) + [Testing Library](https://testing-library.com) | Fast, Jest-compatible, ESM native |
@@ -201,6 +203,18 @@ pnpm docker:down      # Stop and remove all containers
 
 ---
 
+## Troubleshooting
+
+### Turbopack build fails — "couldn't find next/package.json from ./app"
+
+Cause: Turbopack infers the workspace root from the source tree and can incorrectly treat the `app/` directory as the project root.
+
+Fix: `next.config.ts` sets `turbopack: { root: '.' }` to pin the workspace root to the repository root. Ensure this option is present if the error recurs.
+
+> For more troubleshooting (auth, database, OAuth), see [docs/SETUP.md — Troubleshooting](docs/SETUP.md#6-troubleshooting).
+
+---
+
 ## Running E2E Tests (C# .NET 9 + Playwright)
 
 ```bash
@@ -232,54 +246,85 @@ devTree/
 │   ├── api/auth/
 │   │   ├── [...nextauth]/       # NextAuth route handler (JWT, OAuth, session)
 │   │   └── register/            # Registration API (email + password)
+│   ├── api/block/
+│   │   └── audio/               # POST upload audio blocks
+│   ├── api/folders/             # CRUD for folders (route + [folderId]/)
+│   ├── api/pages/               # CRUD for pages (route + [pageId]/)
+│   ├── api/stats/               # Statistics API (activity, content, events, summary, topics)
 │   ├── api/user/
-│   │   ├── profile/             # PATCH name, image
 │   │   ├── avatar/              # POST upload avatar
-│   │   └── password/            # PATCH change password
-│   ├── login/                   # Sign-in page (email/password + OAuth)
-│   ├── register/                # Redirects to /login?mode=register
+│   │   ├── libraries/           # GET/POST/DELETE Excalidraw libraries
+│   │   ├── password/            # PATCH change password
+│   │   ├── preferences/         # GET/PATCH user preferences (JSON column)
+│   │   └── profile/             # PATCH name, image
 │   ├── forgot-password/         # Password reset placeholder
+│   ├── login/                   # Sign-in page (email/password + OAuth)
+│   ├── notebook/                # Main workspace — SPA shell (/notebook?page=<id>)
+│   ├── p/[pageId]/              # Short redirect → /notebook?page=<id>
+│   ├── pages/[pageId]/          # Legacy redirect → /notebook?page=<id>
+│   ├── register/                # Redirects to /login?mode=register
+│   ├── statistics/              # Statistics dashboard page
 │   ├── layout.tsx               # Root layout (fonts, providers)
-│   ├── page.tsx                 # Entry point → renders <Workspace>
+│   ├── page.tsx                 # Entry point — redirects to /notebook
 │   └── globals.css              # Tailwind + Tiptap styles, @theme, @source
 │
 ├── components/
+│   ├── editor/                  # Thin re-export shim (EditorToolbar)
 │   ├── features/                # Domain-specific components
-│   │   ├── editor/              # Tiptap editor + extensions (CodeBlockNode, AudioNode, etc.)
-│   │   ├── FileExplorer/        # Sidebar file tree
-│   │   ├── MainContent/         # Right panel: header, editor, stats
-│   │   │   └── voice-dictation/ # Voice dictation controls
+│   │   ├── editor/              # Tiptap PageEditor + all extensions
+│   │   │   └── extensions/      # Custom nodes: AudioNode, CanvasNode, ChecklistNode,
+│   │   │                        #   CodeBlockNode, ImageNode, LinkCardNode, TableBlockNode,
+│   │   │                        #   VideoNode, BookmarkMark, InlineTagMark, SlashCommand
+│   │   ├── FileExplorer/        # Sidebar file tree (FileExplorer.tsx)
+│   │   ├── MainContent/         # Right panel: header, page title, tag bar, editor
+│   │   │   └── voice-dictation/ # VoiceDictationButton, VoiceDictationLanguageButton,
+│   │   │                        #   dictationTextFormatter, recordingHelpers
 │   │   ├── SettingsDialog/      # Tabbed settings (Account, Appearance, Features)
-│   │   ├── Statistics/          # Stats charts and cards
-│   │   └── Workspace/           # App shell (layout + state)
-│   │       ├── Workspace.tsx    # Root state container
+│   │   ├── Statistics/          # Charts: ActivityHeatmap, DailyActivityChart,
+│   │   │                        #   ContentTypeDonut, TopicsBarChart, StatsSummaryCards,
+│   │   │                        #   StreakCard, MotivationBanner
+│   │   └── Workspace/           # Root state container + tree utilities
+│   │       ├── Workspace.tsx    # Top-level state: pages, folders, active page
 │   │       ├── buildTreeData.tsx # Domain model → UI tree adapter
 │   │       ├── treeTypes.ts     # TreeRoot / TreeNode types
 │   │       ├── treeUtils.ts     # Pure tree manipulation functions
-│   │       └── DeleteConfirmDialog.tsx
+│   │       ├── workspaceApi.ts  # API call helpers for pages/folders
+│   │       ├── DeleteConfirmDialog.tsx
+│   │       ├── FolderRenameRow.tsx
+│   │       └── UnsavedChangesDialog.tsx
 │   └── shared/                  # Reusable components
-│       ├── ActivityBar/         # Navigation sidebar
+│       ├── ActivityBar/         # Navigation sidebar (ActivityBar + ActivityBarItem)
 │       ├── AppShell.tsx         # Top-level app layout
 │       ├── providers.tsx        # ThemeProvider + I18nProvider
 │       ├── RecordingIndicator.tsx
 │       ├── UserMenu/            # Avatar dropdown (theme, language, settings, sign out)
-│       └── ui/                  # Radix-based primitives (dialog, tree-view, etc.)
+│       └── ui/                  # Radix-based primitives:
+│                                #   dialog, alert-dialog, badge, card, tooltip,
+│                                #   tree-view (native DnD), Switch, TruncatedText
 │
 │   Stories are co-located in __stories__/ subdirectories alongside their components.
 │
 ├── lib/
-│   ├── auth/password.ts         # Password hashing (scrypt)
-│   ├── hooks/                   # Custom React hooks (usePageTracking, useSessionTracking)
-│   ├── i18n.tsx                 # Internationalisation context
-│   ├── pageUtils.ts             # Stats, Markdown export
+│   ├── auth/password.ts         # Password hashing (scrypt, no external dep)
+│   ├── hooks/                   # usePageTracking, useSessionTracking
+│   ├── stores/                  # Zustand stores: settingsStore, recordingStore,
+│   │                            #   statsStore, uiStore, recordingSound
+│   ├── apiAuth.ts               # Shared getToken helper for API routes
+│   ├── confirmationContext.tsx  # React context for confirmation dialogs
+│   ├── dateUtils.ts             # Date formatting helpers
+│   ├── i18n.tsx                 # Internationalisation context (en / uk)
+│   ├── notebookPageMemory.ts    # Persist last-viewed page across navigation
+│   ├── pageUtils.ts             # Word count, reading time, Markdown export
 │   ├── prisma.ts                # Prisma client singleton
-│   ├── stores/                  # Zustand stores (settingsStore, recordingStore, statsStore, uiStore)
-│   └── utils.ts                 # cn() Tailwind helper
+│   ├── punctuationService.ts    # Inserts punctuation from voice dictation
+│   ├── tiptap-comment-mark.ts  # Tiptap mark for inline comments
+│   ├── userPreferences.ts       # Read / write user preferences via API
+│   └── utils.ts                 # cn() Tailwind class merge helper
 │
 ├── messages/                    # en.json, uk.json
-├── prisma/                      # schema.prisma, seed.ts
+├── prisma/                      # schema.prisma, seed.ts, migrations/
 ├── stories/                     # Storybook template pages (Button, Header, Page demos)
-├── tests/e2e/                   # C# .NET + Playwright E2E
+├── tests/e2e/                   # C# .NET 9 + Playwright E2E
 │
 ├── docs/                        # Detailed documentation
 │   ├── README.md                # Docs index
@@ -289,10 +334,11 @@ devTree/
 │   ├── SETUP.md                 # Environment, DB, troubleshooting
 │   └── SECURITY.md              # Security measures, performance notes
 │
+├── next.config.ts               # Next.js config (standalone output, turbopack root)
 ├── Dockerfile                   # Multi-stage production image
 ├── docker-compose.yml           # Full stack: app + PostgreSQL
 ├── docker-compose.dev.yml       # Dev: PostgreSQL only
-└── .env.example                 # Environment variable template
+└── .env.development.example     # Environment variable template
 ```
 
 ---

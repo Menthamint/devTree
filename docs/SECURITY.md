@@ -7,8 +7,7 @@ Notes on security measures, safe patterns, and performance considerations.
 ## 1. Authentication and authorization
 
 - **Session:** JWT in HTTP-only cookie (NextAuth). No session storage of secrets on the client.
-- **API routes:** User-scoped actions use `getToken()` from `next-auth/jwt` and `token.sub` (user id). All `/api/user/*` routes require an authenticated user.
-- **Middleware:** Protects app routes; only public paths (`/login`, `/register`, `/forgot-password`, `/api/auth`) are allowed without a token. API requests without a token receive 401 JSON.
+- **API routes:** User-scoped actions use `getToken()` from `next-auth/jwt` and `token.sub` (user id). All `/api/user/*` routes require an authenticated user inline — no token → 401 JSON.
 - **Passwords:** Hashed with **scrypt** (salt + key), verified with `timingSafeEqual` to reduce timing attacks. See `lib/auth/password.ts`.
 
 ---
@@ -32,8 +31,8 @@ Notes on security measures, safe patterns, and performance considerations.
 
 ## 4. Performance
 
-- **Locale:** Initial locale is resolved in **middleware** (runs on every request) from the `devtree-locale` cookie and `Accept-Language` header, then set on the request as `x-devtree-locale`. The root layout reads this header so the first HTML paint uses the correct language. A small inline script syncs the cookie from `localStorage` and reloads once when the cookie was missing so the next request has the cookie.
-- **Dynamic layout:** Root layout uses `export const dynamic = 'force-dynamic'` and reads the middleware-set header for locale.
+- **Locale:** The root layout reads a `x-devtree-locale` request header to determine the initial SSR locale (English fallback when the header is absent). A small inline script syncs the cookie from `localStorage` and reloads once when the cookie was missing so the next request carries the correct locale.
+- **Dynamic layout:** Root layout uses `export const dynamic = 'force-dynamic'` to re-evaluate locale on every request.
 - **Heavy UI:** Monaco (code block) and Mermaid (diagram) are loaded dynamically where possible to keep initial bundle smaller.
 - **Preferences:** Logged-in user preferences (theme, locale, feature flags) are loaded once after auth and applied; they are also persisted to the DB and cookie so refresh keeps settings.
 

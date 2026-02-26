@@ -10,7 +10,7 @@ This folder contains detailed documentation for the Learning Tree (DevTree) proj
 |----------|---------|----------------|
 | [**ARCHITECTURE.md**](./ARCHITECTURE.md) | System design, component hierarchy, data flow, algorithms (tree, DnD, i18n), Mermaid diagrams | Understanding how the app is built and why |
 | [**TECH-STACK.md**](./TECH-STACK.md) | Every library and technology: what it does, why it was chosen, version, and key APIs used | Onboarding, upgrading dependencies, or comparing alternatives |
-| [**AUTH.md**](./AUTH.md) | Authentication flow: NextAuth, credentials, OAuth, session, middleware, user profile APIs | Working on login, sign-up, or protected routes |
+| [**AUTH.md**](./AUTH.md) | Authentication flow: NextAuth, credentials, OAuth, session, route protection, user profile APIs | Working on login, sign-up, or protected routes |
 | [**SETUP.md**](./SETUP.md) | Environment variables, database, seeding, default admin, Docker, and troubleshooting | First-time setup or changing environment |
 | [**SECURITY.md**](./SECURITY.md) | Security measures (auth, passwords, uploads, XSS), env/secrets, performance notes | Security review or hardening |
 

@@ -132,7 +132,6 @@ Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `
 ### "Unexpected token '<'" or 500 on /api/auth/session
 
 - Usually means `AUTH_SECRET` is missing or wrong. Add a valid `AUTH_SECRET` to `.env.development` and restart the dev server.
-- Ensure middleware is not redirecting API auth requests (matcher should exclude `api/auth`).
 
 ### OAuth redirect fails (e.g. Google)
 
@@ -143,6 +142,18 @@ Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `
 
 - If using Docker: `pnpm db:dev` and wait a few seconds for Postgres to start; then `pnpm db:push`.
 - If using a remote DB: check firewall, SSL, and that `DATABASE_URL` is correct.
+
+### Turbopack build fails — "couldn't find next/package.json from ./app"
+
+Full error:
+```
+Error: Next.js inferred your workspace root may not be correct.
+We couldn't find the Next.js package (next/package.json) from the project directory: .../app
+```
+
+Cause: Turbopack infers the workspace root from your source tree. When a top-level `app/` directory exists, it can mistakenly treat that folder as the project root instead of the repository root.
+
+Fix: `next.config.ts` already sets `turbopack: { root: '.' }` which pins the workspace root to the repository root. If you ever see this error again, verify that option is present in `next.config.ts`.
 
 ---
 

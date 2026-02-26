@@ -32,12 +32,12 @@ graph TB
         Monaco["Monaco Editor (code)"]
         Mermaid["Mermaid.js (diagrams)"]
         Excalidraw["Excalidraw (drawing)"]
-        DndKit["@dnd-kit (drag & drop)"]
+        NativeDnD["Native HTML5 DnD\n(file tree)"]
         App --> Tiptap
         App --> Monaco
         App --> Mermaid
         App --> Excalidraw
-        App --> DndKit
+        App --> NativeDnD
     end
 
     subgraph Server["Next.js Server (Node.js)"]
@@ -632,45 +632,42 @@ flowchart TD
 
 ## 7. Drag and Drop
 
-DevTree uses [@dnd-kit](https://dndkit.com) for two separate drag-and-drop systems:
+DevTree uses the **native browser HTML5 drag API** — no external DnD library. The only drag-and-drop surface is the file/folder tree in the sidebar.
 
-### Block reordering (BlockEditor)
+### File tree reordering (tree-view.tsx)
 
 ```mermaid
 sequenceDiagram
     participant User
-    participant DndContext
-    participant PointerSensor
-    participant BlockWrapper
-    participant BlockEditor
+    participant TreeRow
+    participant TreeView
+    participant Workspace
 
-    User->>BlockWrapper: Pointer down on drag handle
-    PointerSensor->>PointerSensor: Wait for 5px movement\n(activationConstraint)
-    PointerSensor->>DndContext: Drag started
-    DndContext->>BlockWrapper: isDragging=true\n(ghost + opacity)
+    User->>TreeRow: mousedown + dragstart (draggable=true)
+    TreeRow->>TreeView: handleDragStart(item)
+    TreeView->>TreeView: setDraggedItem(item)
 
-    User->>DndContext: Pointer move
-    DndContext->>DndContext: closestCenter collision detection\n(find nearest block)
+    User->>TreeRow: dragover another row
+    TreeRow->>TreeView: handleDragOver(targetItem)
+    TreeView->>TreeView: highlight drop target (ring CSS class)
 
-    User->>DndContext: Pointer up (drop)
-    DndContext->>BlockEditor: onDragEnd({ active, over })
-    BlockEditor->>BlockEditor: arrayMove(blocks, oldIndex, newIndex)
-    BlockEditor->>Workspace: onChange(reorderedBlocks)
+    User->>TreeRow: drop
+    TreeRow->>TreeView: handleDrop(targetItem)
+    TreeView->>Workspace: onDocumentDrag(draggedItem, targetItem)
+    Workspace->>Workspace: moveNode(tree, source.id, target.id)
+    Workspace->>Workspace: PATCH /api/folders or /api/pages (persist order)
+    TreeView->>TreeView: setDraggedItem(null)
 ```
 
-**Why `activationConstraint: { distance: 5 }`?**
+**How it works:**
+- Each `TreeRow` renders with `draggable` attribute controlled by the `draggable` prop on `<TreeView>`.
+- `dragstart` / `dragend` events on each row call `handleDragStart` / `handleDragEnd` on the shared tree state.
+- `dragover` fires continuously; the component highlights the current drop target with a CSS ring class (`ring-1 ring-primary/60`).
+- On `drop`, `onDocumentDrag(source, target)` fires — `Workspace` handles this by calling `moveNode` (pure tree util) and then persisting the new order to the API.
 
-Without it, any mousedown on a draggable starts a drag. This makes clicking buttons *inside* blocks impossible (they'd start a drag instead). The 5px threshold means the user must intentionally move the pointer before the drag begins.
+**Special case — dropping onto a file:** Dropping a node onto a *page* node redirects the move to the page's *parent* folder. Pages cannot contain other nodes.
 
-**Why `restrictToVerticalAxis` modifier?**
-
-Blocks should only reorder vertically (up/down). Without this modifier, dragging creates horizontal ghost movement which looks wrong in a vertically-scrolling list.
-
-### File tree reordering (FileExplorer)
-
-The tree drag-and-drop is handled separately in the `tree-view` UI component. When a tree item is dropped, `handleDocumentDrag` in `Workspace` calls `moveNode` from `treeUtils.ts`.
-
-Special case: dropping onto a *file* node redirects the drop to the file's *parent* folder (so you can't nest folders inside pages).
+**Root drop zone:** A dedicated "Drop here to move to root" area at the bottom of the tree handles moves to the tree's top level.
 
 ---
 
@@ -852,7 +849,6 @@ Next.js normally requires the full `node_modules` (~500 MB) at runtime. `standal
 | Next.js App Router | https://nextjs.org/docs/app |
 | React — thinking in React | https://react.dev/learn/thinking-in-react |
 | ProseMirror (Tiptap's engine) | https://prosemirror.net/docs/guide/ |
-| @dnd-kit concepts | https://docs.dndkit.com/introduction/concepts |
 | Tailwind CSS | https://tailwindcss.com/docs |
 | Excalidraw imperative API | https://docs.excalidraw.com/docs/@excalidraw/excalidraw/api/props/excalidraw-api |
 | Excalidraw library format | https://docs.excalidraw.com/docs/codebase/frames#library |

@@ -1,12 +1,12 @@
 # DevTree — Authentication
 
-How authentication works: NextAuth, credentials vs OAuth, session, middleware, and user profile APIs.
+How authentication works: NextAuth, credentials vs OAuth, session, route protection, and user profile APIs.
 
 ---
 
 ## 1. Overview
 
-- **Protected routes:** All routes except `/login`, `/register`, `/forgot-password`, and `/api/auth/*` require a valid session. Middleware runs first: no token → redirect to login (pages) or 401 JSON (API).
+- **Protected routes:** All routes except `/login`, `/register`, `/forgot-password`, and `/api/auth/*` require a valid session. Each API route handler enforces this inline: no valid token → 401 JSON. Page routes rely on client-side session check.
 - **Session:** Stored in an HTTP-only cookie as a JWT (no server-side session table). Session callback merges fresh `name` and `image` from the DB so profile updates show without re-login.
 - **Providers:** Credentials (email + password, scrypt), Google OAuth, GitHub OAuth. Registration is custom (`/api/auth/register`); then user signs in via credentials.
 
@@ -36,12 +36,17 @@ Callback URLs: `{NEXTAUTH_URL}/api/auth/callback/google` and `/github`. PrismaAd
 
 ---
 
-## 5. Middleware
+## 5. Route protection
 
-**File:** `middleware.ts`
+There is no `middleware.ts`. Instead, each API route handler protects itself by calling `getToken` from `next-auth/jwt` at the top of the handler:
 
-- **Matcher:** All paths except `_next`, `api/auth`, favicon, static assets.
-- **No token:** For `pathname.startsWith('/api/')` return 401 JSON; otherwise redirect to `/login?callbackUrl=...`.
+```ts
+const token = await getToken({ req, secret: process.env.AUTH_SECRET });
+if (!token?.sub) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+```
+
+- **API routes** return `401 JSON` when no valid token is found.
+- **Page routes** (`/notebook`, `/statistics`, etc.) redirect to `/login?callbackUrl=...` from within the page component or are protected by the session check in `app/layout.tsx`.
 
 ---
 
@@ -53,7 +58,7 @@ Callback URLs: `{NEXTAUTH_URL}/api/auth/callback/google` and `/github`. PrismaAd
 - **GET /api/user/preferences** — Returns the current user’s saved preferences (theme, locale, tagsPerPageEnabled, tagsPerBlockEnabled). Stored in `User.preferences` (JSON).
 - **PATCH /api/user/preferences** — Body: `{ theme?, locale?, tagsPerPageEnabled?, tagsPerBlockEnabled? }`. Merges into stored preferences so settings follow the user across devices.
 
-All require authenticated user (middleware + getToken in handler).
+All require an authenticated user (verified inline via `getToken` in each handler).
 
 ---
 
