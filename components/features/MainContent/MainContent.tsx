@@ -24,6 +24,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 import type { Editor } from '@tiptap/core';
 import type { JSONContent } from '@tiptap/react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   Bookmark,
   Download,
@@ -99,6 +100,7 @@ export function MainContent({
   onContentChange,
 }: MainContentProps) {
   const { t } = useI18n();
+  const reducedMotion = useReducedMotion();
   const { tagsPerPageEnabled, tagsPerBlockEnabled } = useSettingsStore();
 
   /** Editor instance forwarded from PageEditor — used to render the toolbar here */
@@ -109,6 +111,16 @@ export function MainContent({
   const [activeFilterTags, setActiveFilterTags] = useState<string[]>([]);
   /** All inline tags extracted from the current page's Tiptap content. */
   const [pageInlineTags, setPageInlineTags] = useState<string[]>([]);
+
+  const updateInlineTagsIfChanged = (nextTags: string[]) => {
+    setPageInlineTags((prev) => {
+      if (prev.length === nextTags.length && prev.every((tag, index) => tag === nextTags[index])) {
+        return prev;
+      }
+      return nextTags;
+    });
+  };
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 's') {
@@ -129,8 +141,8 @@ export function MainContent({
       setPageInlineTags([]);
       return;
     }
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync tag list from persisted page content
-    setPageInlineTags(extractInlineTagsFromContent(page.content as Record<string, unknown>));
+    const extracted = extractInlineTagsFromContent(page.content as Record<string, unknown>);
+    updateInlineTagsIfChanged(extracted);
   }, [page?.content, page?.id]);
 
   // Secondary: keep in sync while editing (editor fires 'update' on every change).
@@ -138,8 +150,10 @@ export function MainContent({
     if (!editorInstance) return;
     const update = () => {
       const json = editorInstance.getJSON();
-      setPageInlineTags(extractInlineTagsFromContent(json as Record<string, unknown>));
+      const extracted = extractInlineTagsFromContent(json as Record<string, unknown>);
+      updateInlineTagsIfChanged(extracted);
     };
+    update();
     editorInstance.on('update', update);
     return () => {
       editorInstance.off('update', update);
@@ -156,6 +170,12 @@ export function MainContent({
     // eslint-disable-next-line react-hooks/set-state-in-effect -- collapse bookmarks on page switch
     setBookmarksOpen(false);
   }, [page?.id]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      setActiveFilterTags([]);
+    }
+  }, [isEditMode]);
 
   let headerTitleNode: React.ReactNode;
   if (isPageLoading) {
@@ -234,7 +254,7 @@ export function MainContent({
         <PageMeta createdAt={page.createdAt} updatedAt={page.updatedAt} />
 
         {/* Per-page inline tag filter — always shown when the feature is enabled */}
-        {tagsPerBlockEnabled && (
+        {tagsPerBlockEnabled && !isEditMode && (
           <BlockTagFilter
             allTags={pageInlineTags}
             activeTags={activeFilterTags}
@@ -253,7 +273,7 @@ export function MainContent({
           onChange={onContentChange}
           pageId={page.id}
           onEditorReady={setEditorInstance}
-          activeFilterTags={activeFilterTags}
+          activeFilterTags={isEditMode ? [] : activeFilterTags}
         />
       </div>
     );
@@ -269,13 +289,23 @@ export function MainContent({
   return (
     <main className="bg-background text-foreground flex h-full min-w-0 flex-1 flex-col overflow-hidden">
       {/* ───── Top header bar ───── */}
-      <header className="border-border bg-card flex h-14 shrink-0 items-center justify-between border-b px-4 shadow-sm md:px-6">
+      <motion.header
+        key={`main-header-${page?.id ?? 'empty'}`}
+        className="alive-surface border-border bg-card flex h-14 shrink-0 items-center justify-between border-b px-4 shadow-sm md:px-6"
+        initial={reducedMotion ? false : { y: -14, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={
+          reducedMotion
+            ? { duration: 0.01 }
+            : { type: 'spring', stiffness: 360, damping: 30, mass: 0.82 }
+        }
+      >
         <div className="flex min-w-0 items-center gap-2">
           {onMobileSidebarToggle && (
             <button
               type="button"
               aria-label={t('sidebar.show')}
-              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground mr-1 rounded p-1.5 transition-colors md:hidden"
+              className="motion-interactive icon-tilt-hover text-muted-foreground hover:bg-accent hover:text-accent-foreground mr-1 rounded p-1.5 transition-colors md:hidden"
               onClick={onMobileSidebarToggle}
             >
               <Menu size={20} />
@@ -292,7 +322,7 @@ export function MainContent({
               data-testid="export-markdown-button"
               title={t(I18N_EXPORT_MARKDOWN)}
               aria-label={t(I18N_EXPORT_MARKDOWN)}
-              className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+              className="motion-interactive icon-pop-hover border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => downloadMarkdown(page)}
             >
               <Download size={14} />
@@ -305,28 +335,46 @@ export function MainContent({
                   type="button"
                   title="Bookmarks"
                   aria-label="Bookmarks"
-                  className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                  className="motion-interactive icon-pop-hover border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground flex items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
                   onClick={() => setBookmarksOpen((v) => !v)}
                 >
                   <Bookmark size={14} />
                   <span className="hidden sm:inline">Bookmarks</span>
                 </button>
 
-                {bookmarksOpen && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-10"
-                      aria-hidden
-                      onClick={() => setBookmarksOpen(false)}
-                    />
-                    <div className="absolute top-full right-0 z-20 mt-1">
-                      <BookmarksPanel
-                        editor={editorInstance}
-                        onClose={() => setBookmarksOpen(false)}
+                <AnimatePresence>
+                  {bookmarksOpen && (
+                    <>
+                      <motion.div
+                        key="bookmarks-backdrop"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: reducedMotion ? 0.01 : 0.18, ease: 'easeOut' }}
+                        className="fixed inset-0 z-10"
+                        aria-hidden
+                        onClick={() => setBookmarksOpen(false)}
                       />
-                    </div>
-                  </>
-                )}
+                      <motion.div
+                        key="bookmarks-panel"
+                        initial={
+                          reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }
+                        }
+                        animate={
+                          reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }
+                        }
+                        exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                        transition={{ duration: reducedMotion ? 0.01 : 0.2, ease: [0.22, 1, 0.36, 1] }}
+                        className="absolute top-full right-0 z-20 mt-1"
+                      >
+                        <BookmarksPanel
+                          editor={editorInstance}
+                          onClose={() => setBookmarksOpen(false)}
+                        />
+                      </motion.div>
+                    </>
+                  )}
+                </AnimatePresence>
               </div>
             )}
 
@@ -336,7 +384,7 @@ export function MainContent({
                 <button
                   type="button"
                   aria-label="Cancel editing"
-                  className="border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+                  className="motion-interactive icon-spin-hover border-border text-muted-foreground hover:bg-accent hover:text-accent-foreground inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
                   onClick={() => onEditModeChange?.(false)}
                 >
                   <XCircle size={15} aria-hidden />
@@ -346,7 +394,7 @@ export function MainContent({
                   type="button"
                   aria-label={t('main.savePage')}
                   data-testid="save-page-button"
-                  className="focus:ring-offset-card inline-flex min-w-22 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                  className="motion-interactive icon-pop-hover focus:ring-offset-card inline-flex min-w-22 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:bg-indigo-500 dark:hover:bg-indigo-600"
                   onClick={onSave}
                   disabled={!isDirty}
                 >
@@ -358,7 +406,7 @@ export function MainContent({
               <button
                 type="button"
                 aria-label="Edit page"
-                className="focus:ring-offset-card inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-600"
+                className="motion-interactive icon-pop-hover focus:ring-offset-card inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:outline-none dark:bg-indigo-500 dark:hover:bg-indigo-600"
                 onClick={() => onEditModeChange?.(true)}
               >
                 <Edit2 size={15} aria-hidden />
@@ -367,7 +415,7 @@ export function MainContent({
             )}
           </div>
         )}
-      </header>
+      </motion.header>
 
       {/* ───── Formatting toolbar — shown as a second bar when editing ───── */}
       {isEditMode && editorInstance && (
@@ -541,7 +589,7 @@ function TagBar({ tags, onChange, isEditable = true, suggestions = [] }: TagBarP
             type="button"
             aria-label={`Remove tag ${tag}`}
             data-testid={`page-tag-remove-${tag}`}
-            className="rounded-full opacity-60 hover:opacity-100"
+            className="motion-interactive icon-spin-hover rounded-full opacity-60 hover:opacity-100"
             onClick={() => removeTag(tag)}
           >
             <X size={10} />
@@ -685,7 +733,7 @@ function BlockTagFilter({
             <button
               type="button"
               aria-label="Clear search"
-              className="text-muted-foreground/60 hover:text-muted-foreground shrink-0"
+              className="motion-interactive icon-spin-hover text-muted-foreground/60 hover:text-muted-foreground shrink-0"
               onClick={() => setSearchQuery('')}
             >
               <X size={10} />
@@ -702,7 +750,7 @@ function BlockTagFilter({
             <button
               type="button"
               onClick={() => onChange([])}
-              className="border-border text-muted-foreground flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-700 dark:hover:bg-red-950 dark:hover:text-red-400"
+              className="motion-interactive icon-spin-hover border-border text-muted-foreground flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-600 dark:hover:border-red-700 dark:hover:bg-red-950 dark:hover:text-red-400"
               title={t('block.clearFilter')}
             >
               <X size={10} />

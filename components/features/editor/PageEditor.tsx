@@ -71,10 +71,26 @@ function nodeMatchesFilter(node: any, activeTags: string[]): boolean {
 // ── Apply or clear per-block display filtering ────────────────────────────────
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function applyBlockFilter(editor: any, activeTags: string[]) {
-  editor.state.doc.forEach((node: any, offset: number) => {
-    const domNode = editor.view.nodeDOM(offset) as HTMLElement | null;
+  const root = editor.view.dom.querySelector('.ProseMirror') as HTMLElement | null;
+  if (!root) return;
+
+  if (activeTags.length === 0) {
+    for (const child of Array.from(root.children)) {
+      const el = child as HTMLElement;
+      el.style.display = '';
+      delete el.dataset.filterHidden;
+    }
+    return;
+  }
+
+  let index = 0;
+  editor.state.doc.forEach((node: any) => {
+    const domNode = root.children.item(index) as HTMLElement | null;
+    index += 1;
     if (!domNode) return;
-    domNode.style.display = nodeMatchesFilter(node, activeTags) ? '' : 'none';
+    const visible = nodeMatchesFilter(node, activeTags);
+    domNode.style.display = visible ? '' : 'none';
+    domNode.toggleAttribute('data-filter-hidden', !visible);
   });
 }
 
@@ -259,6 +275,7 @@ export function PageEditor({
     if (!editor) return;
     const apply = () => applyBlockFilter(editor, activeFilterTags);
     apply();
+    if (activeFilterTags.length === 0) return;
     editor.on('update', apply);
     return () => {
       editor.off('update', apply);
@@ -336,7 +353,7 @@ function AddBlockButton({ editor }: Readonly<{ editor: Editor }>) {
           type="button"
           aria-label="Add block"
           onClick={handleClick}
-          className="border-border text-muted-foreground flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-sm transition-colors hover:border-indigo-400 hover:bg-indigo-50/50 hover:text-indigo-600 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-400"
+          className="motion-interactive border-border text-muted-foreground flex w-full items-center justify-center gap-2 rounded-xl border-2 border-dashed py-3 text-sm transition-colors hover:border-indigo-400 hover:bg-indigo-50/50 hover:text-indigo-600 dark:hover:bg-indigo-950/30 dark:hover:text-indigo-400"
         >
           <Plus size={16} />
           Add block

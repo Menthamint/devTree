@@ -218,14 +218,14 @@ export default function LoginPage() {
   const primaryLoading = mode === 'login' ? t('auth.signingIn') : t('auth.creatingAccount');
 
   const inputBase =
-    'w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20';
+    'motion-interactive w-full rounded-lg border border-border bg-background px-4 py-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20';
   const btnBase =
-    'flex h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50';
+    'motion-interactive flex h-11 w-full items-center justify-center gap-2 rounded-lg px-4 py-3 text-sm font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:ring-offset-background disabled:opacity-50';
 
   return (
     <div className="flex min-h-dvh flex-col lg:flex-row">
       {/* Left panel: branding */}
-      <div className="flex min-h-[40vh] flex-col justify-center bg-linear-to-b from-[#1e3a5f] to-[#0f172a] px-6 py-8 text-white lg:min-h-screen lg:w-[42%] lg:px-10 lg:py-12">
+      <div className="alive-surface flex min-h-[40vh] flex-col justify-center bg-linear-to-b from-[#1e3a5f] to-[#0f172a] px-6 py-8 text-white lg:min-h-screen lg:w-[42%] lg:px-10 lg:py-12">
         <div className="flex items-center justify-between">
           <span className="text-xl font-bold tracking-tight lg:text-2xl">
             {t('auth.learningTree')}
@@ -236,7 +236,7 @@ export default function LoginPage() {
                 key={id}
                 type="button"
                 onClick={() => setLocale(id)}
-                className={`rounded px-2.5 py-1 text-sm font-medium transition-colors ${locale === id ? 'bg-white text-[#1e3a5f]' : 'text-white/80 hover:bg-white/10'}`}
+                className={`motion-interactive rounded px-2.5 py-1 text-sm font-medium transition-colors ${locale === id ? 'bg-white text-[#1e3a5f]' : 'text-white/80 hover:bg-white/10'}`}
                 aria-label={t('auth.language')}
               >
                 {label}
@@ -254,7 +254,7 @@ export default function LoginPage() {
 
       {/* Right panel: form */}
       <div className="bg-background text-foreground flex flex-1 items-center justify-center px-4 py-8 lg:px-12">
-        <div className="w-full max-w-md">
+        <div className="motion-surface alive-shadow w-full max-w-md">
           <h2 className="text-foreground text-2xl font-bold tracking-tight">{formTitle}</h2>
           <p className="text-muted-foreground mt-1 text-sm">{formSubtitle}</p>
 
@@ -335,7 +335,7 @@ export default function LoginPage() {
                   <Link
                     href="/forgot-password"
                     data-testid="login-forgot-link"
-                    className="text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
+                    className="motion-interactive text-muted-foreground hover:text-foreground text-xs underline-offset-2 hover:underline"
                   >
                     {t('auth.forgotPassword')}
                   </Link>
@@ -362,7 +362,7 @@ export default function LoginPage() {
                 />
                 <button
                   type="button"
-                  className="text-muted-foreground hover:text-foreground focus:ring-ring focus:ring-offset-background absolute top-1/2 right-3 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded focus:ring-2 focus:ring-offset-2 focus:outline-none"
+                  className="motion-interactive text-muted-foreground hover:text-foreground focus:ring-ring focus:ring-offset-background absolute top-1/2 right-3 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded focus:ring-2 focus:ring-offset-2 focus:outline-none"
                   onClick={() => setShowPassword((v) => !v)}
                   aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                   tabIndex={-1}
@@ -386,7 +386,7 @@ export default function LoginPage() {
                     {[0, 1, 2, 3].map((i) => (
                       <div
                         key={i}
-                        className={`h-1 flex-1 rounded-full transition-colors ${getSegmentClass(i)}`}
+                        className={`motion-interactive h-1 flex-1 rounded-full transition-colors ${getSegmentClass(i)}`}
                       />
                     ))}
                   </div>
@@ -521,7 +521,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   data-testid="auth-switch-register"
-                  className="text-foreground font-medium underline-offset-2 hover:underline"
+                  className="motion-interactive text-foreground font-medium underline-offset-2 hover:underline"
                   onClick={() => switchMode('register')}
                 >
                   {t('auth.signUp')}
@@ -533,7 +533,7 @@ export default function LoginPage() {
                 <button
                   type="button"
                   data-testid="auth-switch-login"
-                  className="text-foreground font-medium underline-offset-2 hover:underline"
+                  className="motion-interactive text-foreground font-medium underline-offset-2 hover:underline"
                   onClick={() => switchMode('login')}
                 >
                   {t('auth.logIn')}

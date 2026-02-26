@@ -95,7 +95,7 @@ export function ContentTypeDonut({ data, loading }: Props) {
     : [];
 
   return (
-    <Card className="overflow-hidden">
+    <Card className="motion-surface motion-interactive overflow-hidden hover:-translate-y-0.5 hover:shadow-md">
       <CardHeader>
         <CardTitle>Block Types</CardTitle>
         <CardDescription>Distribution of content block types</CardDescription>

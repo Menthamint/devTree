@@ -16,7 +16,13 @@ const DialogOverlay = React.forwardRef<
 >(({ className, ...props }, ref) => (
   <DialogPrimitive.Overlay
     ref={ref}
-    className={cn('fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity', className)}
+    className={cn(
+      'motion-overlay fixed inset-0 z-50 bg-black/50 backdrop-blur-sm transition-opacity',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out',
+      'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+      'data-[state=open]:duration-300 data-[state=closed]:duration-180 motion-reduce:animate-none motion-reduce:duration-0',
+      className,
+    )}
     {...props}
   />
 ));
@@ -31,14 +37,18 @@ const DialogContent = React.forwardRef<
     <DialogPrimitive.Content
       ref={ref}
       className={cn(
-        'border-border bg-card text-card-foreground fixed top-[50%] left-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl border p-6 shadow-xl',
+        'motion-surface border-border bg-card text-card-foreground fixed top-[50%] left-[50%] z-50 w-full max-w-lg translate-x-[-50%] translate-y-[-50%] rounded-xl border p-6 shadow-xl',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+        'data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95',
+        'data-[state=open]:duration-220 data-[state=closed]:duration-140 motion-reduce:animate-none motion-reduce:duration-0',
         className,
       )}
       {...props}
     >
       {children}
       <DialogPrimitive.Close
-        className="text-muted-foreground ring-offset-card focus:ring-ring absolute top-4 right-4 rounded-md p-1 opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none"
+        className="motion-interactive icon-spin-hover text-muted-foreground ring-offset-card focus:ring-ring absolute top-4 right-4 rounded-md p-1 opacity-70 transition-opacity hover:opacity-100 focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:pointer-events-none"
         aria-label="Close"
       >
         <X size={16} />

@@ -200,7 +200,10 @@ export function StatsSummaryCards({ data, loading }: Props) {
     <TooltipProvider>
       <div className="grid h-full grid-cols-2 gap-4 lg:grid-cols-4">
         {cards.map((card) => (
-          <Card key={card.key} className="flex flex-col">
+          <Card
+            key={card.key}
+            className="motion-surface motion-interactive flex flex-col hover:-translate-y-0.5 hover:shadow-md"
+          >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <div className="flex items-center gap-1.5">
                 <CardTitle className="text-sm font-medium">{card.label}</CardTitle>

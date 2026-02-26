@@ -5,6 +5,7 @@ import React, { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { usePathname } from 'next/navigation';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { BookOpen, Flame } from 'lucide-react';
 
 import { SettingsDialog } from '@/components/features/SettingsDialog/SettingsDialog';
@@ -39,6 +40,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
   const { status } = useSession();
   const { enabled: statisticsEnabled } = useStatsStore();
   const [summary, setSummary] = useState<SummaryData | null>(null);
+  const reducedMotion = useReducedMotion();
 
   // Fetch summary once per mount (used for streak pill + motivation banner)
   useEffect(() => {
@@ -60,7 +62,17 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
   return (
     <div className="flex h-screen flex-col overflow-hidden">
       {/* ── Global header ── */}
-      <header className="border-border bg-card flex h-14 shrink-0 items-center justify-between border-b px-4 shadow-sm md:px-6">
+      <motion.header
+        key={`app-shell-header-${pathname}`}
+        className="alive-surface border-border bg-card flex h-14 shrink-0 items-center justify-between border-b px-4 shadow-sm md:px-6"
+        initial={reducedMotion ? false : { y: -16, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
+        transition={
+          reducedMotion
+            ? { duration: 0.01 }
+            : { type: 'spring', stiffness: 340, damping: 30, mass: 0.85 }
+        }
+      >
         <div className="flex items-center gap-2.5">
           <BookOpen className="text-primary h-5 w-5" aria-hidden />
           <span className="text-foreground hidden text-sm font-bold tracking-tight select-none sm:block">
@@ -79,7 +91,7 @@ export function AppShell({ children }: Readonly<{ children: React.ReactNode }>) 
           )}
           <UserMenu onOpenSettings={openSettings} />
         </div>
-      </header>
+      </motion.header>
 
       {/* ── Body: ActivityBar + page content ── */}
       <div className="flex flex-1 overflow-hidden">

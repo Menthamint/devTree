@@ -38,6 +38,7 @@ import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { LogOut, Settings } from 'lucide-react';
 
 import { type Locale, useI18n } from '@/lib/i18n';
@@ -106,7 +107,7 @@ function InlineSegment({
         onClick();
       }}
       className={cn(
-        'rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
+        'motion-interactive rounded-md px-2.5 py-1 text-xs font-medium transition-colors',
         active
           ? 'bg-indigo-600 text-white dark:bg-indigo-500'
           : 'text-muted-foreground hover:bg-accent hover:text-foreground',
@@ -124,6 +125,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
   const { t, locale, setLocale } = useI18n();
   const { theme, setTheme } = useTheme();
   const [open, setOpen] = useState(false);
+  const reducedMotion = useReducedMotion();
   const isNarrow = useIsNarrowViewport();
   const userName = session?.user?.name ?? t('userMenu.userName');
   const userEmail = session?.user?.email ?? t('userMenu.workspace');
@@ -145,7 +147,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
           type="button"
           aria-label={t('userMenu.label')}
           className={cn(
-            'flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full',
+            'motion-interactive flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full',
             'bg-linear-to-br from-indigo-500 to-violet-600',
             'text-xs font-bold text-white shadow-sm',
             'transition-shadow hover:shadow-md',
@@ -161,22 +163,41 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
         </button>
       </DropdownMenu.Trigger>
 
-      <DropdownMenu.Portal>
-        <DropdownMenu.Content
-          className={cn(
-            'border-border bg-popover z-50 min-w-56 overflow-hidden rounded-xl border shadow-xl',
-            'max-w-[min(20rem,calc(100vw-2rem))]',
-            'text-popover-foreground',
-            'data-[state=open]:animate-in data-[state=closed]:animate-out',
-            'data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0',
-            'data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95',
-          )}
-          side={isNarrow ? 'top' : 'bottom'}
-          sideOffset={8}
-          align="end"
-          alignOffset={0}
-          collisionPadding={12}
-        >
+      <DropdownMenu.Portal forceMount>
+        <AnimatePresence>
+          {open && (
+            <DropdownMenu.Content
+              forceMount
+              asChild
+              side={isNarrow ? 'top' : 'bottom'}
+              sideOffset={8}
+              align="end"
+              alignOffset={0}
+              collisionPadding={12}
+            >
+              <motion.div
+                initial={
+                  reducedMotion
+                    ? { opacity: 1 }
+                    : { opacity: 0, scale: 0.97 }
+                }
+                animate={
+                  reducedMotion
+                    ? { opacity: 1 }
+                    : { opacity: 1, scale: 1 }
+                }
+                exit={
+                  reducedMotion
+                    ? { opacity: 0 }
+                    : { opacity: 0, scale: 0.985 }
+                }
+                transition={{ duration: reducedMotion ? 0.01 : 0.18, ease: [0.22, 1, 0.36, 1] }}
+                className={cn(
+                  'motion-surface border-border bg-popover z-50 min-w-56 overflow-hidden rounded-xl border shadow-xl',
+                  'max-w-[min(20rem,calc(100vw-2rem))]',
+                  'text-popover-foreground',
+                )}
+              >
           {/* ── User info header ──────────────────────────────────────── */}
           <div className="border-border/60 flex items-center gap-3 border-b px-4 py-3">
             <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white">
@@ -236,7 +257,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
           <div className="border-border/60 border-b p-1">
             <DropdownMenu.Item
               className={cn(
-                'flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5',
+                'motion-interactive icon-tilt-hover flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5',
                 'text-foreground text-sm transition-colors outline-none',
                 'hover:bg-accent hover:text-accent-foreground',
                 'focus:bg-accent focus:text-accent-foreground',
@@ -256,7 +277,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
           <div className="p-1">
             <DropdownMenu.Item
               className={cn(
-                'flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5',
+                'motion-interactive icon-pop-hover flex cursor-pointer items-center gap-2.5 rounded-lg px-3 py-2.5',
                 'text-foreground text-sm transition-colors outline-none',
                 'hover:bg-accent hover:text-accent-foreground',
                 'focus:bg-accent focus:text-accent-foreground',
@@ -271,7 +292,10 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
               <span>{t('userMenu.signOut')}</span>
             </DropdownMenu.Item>
           </div>
-        </DropdownMenu.Content>
+              </motion.div>
+            </DropdownMenu.Content>
+          )}
+        </AnimatePresence>
       </DropdownMenu.Portal>
     </DropdownMenu.Root>
   );

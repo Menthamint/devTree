@@ -73,7 +73,7 @@ export function VoiceDictationLanguageButton({
       title={`Dictation language: ${LANGUAGE_LABELS[currentLanguage]} (click to cycle)`}
       onMouseDown={handleCycleLanguage}
       className={cn(
-        'flex h-7 w-7 items-center justify-center rounded text-sm transition-colors',
+        'motion-interactive flex h-7 w-7 items-center justify-center rounded text-sm transition-colors',
         'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
       )}
     >

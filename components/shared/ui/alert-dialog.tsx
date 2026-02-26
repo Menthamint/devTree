@@ -14,7 +14,13 @@ const AlertDialogOverlay = React.forwardRef<
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Overlay>
 >(({ className, ...props }, ref) => (
   <AlertDialogPrimitive.Overlay
-    className={cn('fixed inset-0 z-50 bg-black/50 transition-opacity', className)}
+    className={cn(
+      'motion-overlay fixed inset-0 z-50 bg-black/50 transition-opacity',
+      'data-[state=open]:animate-in data-[state=closed]:animate-out',
+      'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+      'data-[state=open]:duration-300 data-[state=closed]:duration-180 motion-reduce:animate-none motion-reduce:duration-0',
+      className,
+    )}
     {...props}
     ref={ref}
   />
@@ -30,7 +36,11 @@ const AlertDialogContent = React.forwardRef<
     <AlertDialogPrimitive.Content
       ref={ref}
       className={cn(
-        'border-border bg-card text-card-foreground fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-xl',
+        'motion-surface border-border bg-card text-card-foreground fixed top-[50%] left-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 rounded-lg border p-6 shadow-xl',
+        'data-[state=open]:animate-in data-[state=closed]:animate-out',
+        'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+        'data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95',
+        'data-[state=open]:duration-220 data-[state=closed]:duration-140 motion-reduce:animate-none motion-reduce:duration-0',
         className,
       )}
       {...props}
@@ -83,7 +93,7 @@ const AlertDialogAction = React.forwardRef<
   <AlertDialogPrimitive.Action
     ref={ref}
     className={cn(
-      'bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-ring focus:ring-offset-card inline-flex h-10 items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none',
+      'motion-interactive bg-destructive text-destructive-foreground hover:bg-destructive/90 focus:ring-ring focus:ring-offset-card inline-flex h-10 items-center justify-center rounded-md px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none',
       className,
     )}
     {...props}
@@ -98,7 +108,7 @@ const AlertDialogCancel = React.forwardRef<
   <AlertDialogPrimitive.Cancel
     ref={ref}
     className={cn(
-      'border-border bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-ring focus:ring-offset-card mt-2 inline-flex h-10 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none sm:mt-0',
+      'motion-interactive border-border bg-secondary text-secondary-foreground hover:bg-secondary/80 focus:ring-ring focus:ring-offset-card mt-2 inline-flex h-10 items-center justify-center rounded-md border px-4 py-2 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none sm:mt-0',
       className,
     )}
     {...props}

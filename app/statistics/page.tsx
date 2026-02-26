@@ -103,14 +103,14 @@ export default function StatisticsPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="mx-auto w-full max-w-6xl space-y-6 p-6 lg:p-8">
           {/* Page title */}
-          <div>
+          <div className="motion-surface alive-surface rounded-xl p-1">
             <h1 className="text-2xl font-semibold tracking-tight">Statistics</h1>
             <p className="text-muted-foreground text-sm">Track your learning progress and habits</p>
           </div>
 
           {/* Error state */}
           {error && (
-            <div className="border-destructive/50 bg-destructive/10 text-destructive rounded-lg border p-4 text-sm">
+            <div className="motion-surface border-destructive/50 bg-destructive/10 text-destructive rounded-lg border p-4 text-sm">
               <strong className="font-medium">Failed to load statistics: </strong>
               {error}
             </div>

@@ -65,7 +65,7 @@ export function TopicsBarChart({ data, loading }: Props) {
     .map((d) => ({ ...d, timeMin: Math.round(d.timeSpentMs / 60_000) }));
 
   return (
-    <Card>
+    <Card className="motion-surface motion-interactive hover:-translate-y-0.5 hover:shadow-md">
       <CardHeader>
         <CardTitle>Time per Topic</CardTitle>
         <CardDescription>How long you spent in each folder</CardDescription>

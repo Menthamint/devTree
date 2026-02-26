@@ -262,14 +262,14 @@ const SlashCommandList = forwardRef<SlashListHandle, SlashListProps>((props, ref
               itemRefs.current[index] = el;
             }}
             className={cn(
-              'flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors',
+              'motion-interactive flex w-full items-center gap-3 rounded-lg px-2 py-1.5 text-left transition-colors',
               index === selectedIndex
                 ? 'bg-accent text-accent-foreground'
                 : 'text-foreground hover:bg-accent/50',
             )}
             onClick={() => props.command(item)}
           >
-            <span className="border-border bg-card flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border">
+            <span className="motion-surface border-border bg-card flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border">
               <Icon size={14} />
             </span>
             <div>
@@ -304,6 +304,20 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
     render: () => {
       let reactRenderer: ReactRenderer<SlashListHandle> | null = null;
       let popupEl: HTMLDivElement | null = null;
+      let removeOutsideListener: (() => void) | null = null;
+
+      const cleanup = () => {
+        if (removeOutsideListener) {
+          removeOutsideListener();
+          removeOutsideListener = null;
+        }
+        if (popupEl) {
+          popupEl.remove();
+          popupEl = null;
+        }
+        reactRenderer?.destroy();
+        reactRenderer = null;
+      };
 
       return {
         onStart(props) {
@@ -331,6 +345,15 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
               popupEl.style.left = `${rect.left}px`;
             }
           }
+
+          const onPointerDownOutside = (event: PointerEvent) => {
+            const target = event.target as Node | null;
+            if (!popupEl || popupEl.contains(target)) return;
+            props.editor.commands.blur();
+          };
+          document.addEventListener('pointerdown', onPointerDownOutside, true);
+          removeOutsideListener = () =>
+            document.removeEventListener('pointerdown', onPointerDownOutside, true);
         },
 
         onUpdate(props) {
@@ -345,19 +368,14 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
 
         onKeyDown(props) {
           if (props.event.key === 'Escape') {
-            if (popupEl) popupEl.style.display = 'none';
+            props.editor.commands.blur();
             return true;
           }
           return reactRenderer?.ref?.onKeyDown(props.event) ?? false;
         },
 
         onExit() {
-          if (popupEl) {
-            popupEl.remove();
-            popupEl = null;
-          }
-          reactRenderer?.destroy();
-          reactRenderer = null;
+          cleanup();
         },
       };
     },

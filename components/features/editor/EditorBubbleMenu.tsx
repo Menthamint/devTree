@@ -10,6 +10,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { Editor } from '@tiptap/react';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   Bold,
   Bookmark,
@@ -65,56 +66,95 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
   const [commentOpen, setCommentOpen] = useState(false);
   const [highlightOpen, setHighlightOpen] = useState(false);
   const [tagOpen, setTagOpen] = useState(false);
+  const reducedMotion = useReducedMotion();
+  const popupDuration = reducedMotion ? 0.01 : 0.16;
   const tagInputRef = useRef<HTMLInputElement>(null);
+
+  const closePopups = useCallback(() => {
+    setLinkOpen(false);
+    setCommentOpen(false);
+    setHighlightOpen(false);
+    setTagOpen(false);
+  }, []);
+
+  const updatePosition = useCallback(() => {
+    const { state, view } = editor;
+    const { selection } = state;
+    const { empty, from, to } = selection;
+
+    const shouldHide = empty || ATOM_TYPES.some((t) => editor.isActive(t));
+    if (shouldHide) {
+      setVisible(false);
+      closePopups();
+      return;
+    }
+
+    try {
+      const start = view.coordsAtPos(from);
+      const end = view.coordsAtPos(to);
+      const box = view.dom.getBoundingClientRect();
+      const scrollTop = window.scrollY;
+      const scrollLeft = window.scrollX;
+
+      const menuWidth = menuRef.current?.offsetWidth ?? 320;
+      const selMiddleX = (start.left + end.left) / 2 + scrollLeft;
+      const selTop = Math.min(start.top, end.top) + scrollTop;
+
+      setCoords({
+        top: selTop - 48,
+        left: Math.max(
+          8 + scrollLeft + box.left,
+          Math.min(selMiddleX - menuWidth / 2, scrollLeft + box.right - menuWidth - 8),
+        ),
+      });
+      setVisible(true);
+    } catch {
+      setVisible(false);
+      closePopups();
+    }
+  }, [closePopups, editor]);
 
   // ── Compute visibility and position ──────────────────────────────────────
 
   useEffect(() => {
-    const update = () => {
-      const { state, view } = editor;
-      const { selection } = state;
-      const { empty, from, to } = selection;
-
-      // Hide for empty selections or atom node selections
-      const shouldHide = empty || ATOM_TYPES.some((t) => editor.isActive(t));
-      if (shouldHide) {
-        setVisible(false);
-        return;
-      }
-
-      // Get bounding rect for the selection
-      try {
-        const start = view.coordsAtPos(from);
-        const end = view.coordsAtPos(to);
-        const box = view.dom.getBoundingClientRect();
-        const scrollTop = window.scrollY;
-        const scrollLeft = window.scrollX;
-
-        // Place menu centred above the selection
-        const menuWidth = menuRef.current?.offsetWidth ?? 320;
-        const selMiddleX = (start.left + end.left) / 2 + scrollLeft;
-        const selTop = Math.min(start.top, end.top) + scrollTop;
-
-        setCoords({
-          top: selTop - 48, // ~3rem above the selection
-          left: Math.max(
-            8 + scrollLeft + box.left,
-            Math.min(selMiddleX - menuWidth / 2, scrollLeft + box.right - menuWidth - 8),
-          ),
-        });
-        setVisible(true);
-      } catch {
-        setVisible(false);
-      }
-    };
-
-    editor.on('selectionUpdate', update);
-    editor.on('transaction', update);
+    editor.on('selectionUpdate', updatePosition);
+    editor.on('transaction', updatePosition);
+    updatePosition();
     return () => {
-      editor.off('selectionUpdate', update);
-      editor.off('transaction', update);
+      editor.off('selectionUpdate', updatePosition);
+      editor.off('transaction', updatePosition);
     };
-  }, [editor]);
+  }, [editor, updatePosition]);
+
+  useEffect(() => {
+    if (!visible) return;
+
+    const onViewportChange = () => updatePosition();
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node | null;
+      if (menuRef.current?.contains(target)) return;
+      closePopups();
+      setVisible(false);
+    };
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closePopups();
+        setVisible(false);
+      }
+    };
+
+    window.addEventListener('scroll', onViewportChange, true);
+    window.addEventListener('resize', onViewportChange);
+    document.addEventListener('pointerdown', onPointerDown, true);
+    document.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      window.removeEventListener('scroll', onViewportChange, true);
+      window.removeEventListener('resize', onViewportChange);
+      document.removeEventListener('pointerdown', onPointerDown, true);
+      document.removeEventListener('keydown', onKeyDown);
+    };
+  }, [closePopups, updatePosition, visible]);
 
   // ── Link ─────────────────────────────────────────────────────────────────
 
@@ -192,8 +232,8 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
   return createPortal(
     <div
       ref={menuRef}
+      className="motion-surface"
       style={{ position: 'absolute', top: coords.top, left: coords.left, zIndex: 50 }}
-      onMouseDown={(e) => e.preventDefault()} // keep editor focus
     >
       <div className="border-border bg-card flex items-center gap-0.5 rounded-xl border px-1.5 py-1 shadow-lg">
         <ToolbarButton
@@ -247,35 +287,48 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
           >
             <Highlighter size={13} />
           </ToolbarButton>
-          {highlightOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                aria-hidden
-                onClick={() => setHighlightOpen(false)}
-              />
-              <div className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 flex gap-1 rounded-lg border p-1.5">
-                {HIGHLIGHT_COLORS.map(({ name, value }) => (
-                  <button
-                    key={name}
-                    type="button"
-                    title={name}
-                    className={cn(
-                      'border-border h-5 w-5 rounded border',
-                      !value && 'bg-transparent',
-                    )}
-                    style={{ backgroundColor: value || undefined }}
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (value) editor.chain().focus().toggleHighlight({ color: value }).run();
-                      else editor.chain().focus().unsetHighlight().run();
-                      setHighlightOpen(false);
-                    }}
-                  />
-                ))}
-              </div>
-            </>
-          )}
+          <AnimatePresence>
+            {highlightOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="fixed inset-0 z-10"
+                  aria-hidden
+                  onClick={() => setHighlightOpen(false)}
+                />
+                <motion.div
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                  animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                  exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 flex gap-1 rounded-lg border p-1.5"
+                >
+                  {HIGHLIGHT_COLORS.map(({ name, value }) => (
+                    <button
+                      key={name}
+                      type="button"
+                      title={name}
+                      className={cn(
+                        'motion-interactive border-border h-5 w-5 rounded border',
+                        !value && 'bg-transparent',
+                      )}
+                      style={{ backgroundColor: value || undefined }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        const chain = editor.chain().focus();
+                        if (value) chain.setHighlight({ color: value }).run();
+                        else chain.unsetHighlight().run();
+                        setHighlightOpen(false);
+                      }}
+                    />
+                  ))}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Link */}
@@ -291,10 +344,25 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
           >
             <LinkIcon size={13} />
           </ToolbarButton>
-          {linkOpen && (
-            <>
-              <div className="fixed inset-0 z-10" aria-hidden onClick={() => setLinkOpen(false)} />
-              <div className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 w-64 rounded-lg border p-2 shadow-lg">
+          <AnimatePresence>
+            {linkOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="fixed inset-0 z-10"
+                  aria-hidden
+                  onClick={() => setLinkOpen(false)}
+                />
+                <motion.div
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                  animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                  exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 w-64 rounded-lg border p-2 shadow-lg"
+                >
                 <input
                   ref={linkInputRef}
                   type="url"
@@ -312,7 +380,7 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                 />
                 <button
                   type="button"
-                  className="bg-primary text-primary-foreground mt-1.5 rounded px-2 py-1 text-xs hover:opacity-90"
+                  className="motion-interactive icon-pop-hover bg-primary text-primary-foreground mt-1.5 rounded px-2 py-1 text-xs hover:opacity-90"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     setLink();
@@ -320,9 +388,10 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                 >
                   Apply
                 </button>
-              </div>
-            </>
-          )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
         <span className="bg-border mx-0.5 h-4 w-px" />
@@ -349,14 +418,25 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
           >
             <MessageSquare size={13} />
           </ToolbarButton>
-          {commentOpen && (
-            <>
-              <div
-                className="fixed inset-0 z-10"
-                aria-hidden
-                onClick={() => setCommentOpen(false)}
-              />
-              <div className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 w-72 rounded-lg border p-2 shadow-lg">
+          <AnimatePresence>
+            {commentOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="fixed inset-0 z-10"
+                  aria-hidden
+                  onClick={() => setCommentOpen(false)}
+                />
+                <motion.div
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                  animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                  exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 w-72 rounded-lg border p-2 shadow-lg"
+                >
                 <textarea
                   ref={commentInputRef}
                   placeholder="Add a note…"
@@ -370,7 +450,7 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                 <div className="mt-1.5 flex gap-1">
                   <button
                     type="button"
-                    className="bg-primary text-primary-foreground rounded px-2 py-1 text-xs hover:opacity-90"
+                    className="motion-interactive icon-pop-hover bg-primary text-primary-foreground rounded px-2 py-1 text-xs hover:opacity-90"
                     onMouseDown={(e) => {
                       e.preventDefault();
                       applyComment();
@@ -381,7 +461,7 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                   {editor.isActive('comment') && (
                     <button
                       type="button"
-                      className="border-border hover:bg-accent rounded border px-2 py-1 text-xs"
+                      className="motion-interactive icon-spin-hover border-border hover:bg-accent rounded border px-2 py-1 text-xs"
                       onMouseDown={(e) => {
                         e.preventDefault();
                         removeComment();
@@ -391,9 +471,10 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                     </button>
                   )}
                 </div>
-              </div>
-            </>
-          )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Bookmark */}
@@ -431,10 +512,25 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
           >
             <Tag size={13} />
           </ToolbarButton>
-          {tagOpen && (
-            <>
-              <div className="fixed inset-0 z-10" aria-hidden onClick={() => setTagOpen(false)} />
-              <div className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 w-52 rounded-lg border p-2 shadow-lg">
+          <AnimatePresence>
+            {tagOpen && (
+              <>
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="fixed inset-0 z-10"
+                  aria-hidden
+                  onClick={() => setTagOpen(false)}
+                />
+                <motion.div
+                  initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                  animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                  exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                  transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                  className="border-border bg-popover absolute bottom-full left-0 z-20 mb-2 w-52 rounded-lg border p-2 shadow-lg"
+                >
                 <p className="text-muted-foreground mb-1.5 text-[10px] font-medium">
                   Tag selected text
                 </p>
@@ -452,7 +548,7 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                 <div className="mt-1.5 flex gap-1">
                   <button
                     type="button"
-                    className="bg-primary text-primary-foreground rounded px-2 py-1 text-xs hover:opacity-90"
+                    className="motion-interactive icon-pop-hover bg-primary text-primary-foreground rounded px-2 py-1 text-xs hover:opacity-90"
                     onMouseDown={(e) => {
                       e.preventDefault();
                       applyInlineTag();
@@ -463,7 +559,7 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                   {editor.isActive('inlineTag') && (
                     <button
                       type="button"
-                      className="border-border hover:bg-accent rounded border px-2 py-1 text-xs"
+                      className="motion-interactive icon-spin-hover border-border hover:bg-accent rounded border px-2 py-1 text-xs"
                       onMouseDown={(e) => {
                         e.preventDefault();
                         removeInlineTag();
@@ -473,9 +569,10 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
                     </button>
                   )}
                 </div>
-              </div>
-            </>
-          )}
+                </motion.div>
+              </>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </div>,

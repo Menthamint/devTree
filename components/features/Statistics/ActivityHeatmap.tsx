@@ -95,7 +95,7 @@ export function ActivityHeatmap({ data, loading }: Props) {
   });
 
   return (
-    <Card>
+    <Card className="motion-surface motion-interactive hover:-translate-y-0.5 hover:shadow-md">
       <CardHeader>
         <CardTitle>Activity Heatmap</CardTitle>
         <CardDescription>Your daily activity over the last 12 months</CardDescription>

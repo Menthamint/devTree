@@ -21,6 +21,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useRouter } from 'next/navigation';
 
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { ChevronLeft, ChevronRight, FilePlus, FolderPlus, Search, X } from 'lucide-react';
 
 import { FileExplorer } from '@/components/features/FileExplorer/FileExplorer';
@@ -66,6 +67,7 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
   const isTransitioningRef = useRef(false);
 
   const { t } = useI18n();
+  const reducedMotion = useReducedMotion();
   const tagsPerPageEnabled = useSettingsStore((s) => s.tagsPerPageEnabled);
   const router = useRouter();
   const routePageId = useMemo(() => initialRoutePageId || null, [initialRoutePageId]);
@@ -407,11 +409,13 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
   }, []);
 
   // ─── Render ──────────────────────────────────────────────────────────────
+  const isCollapsedDesktop = leftPanelHidden && !mobileSidebarOpen;
+
   return (
     <div className="bg-background text-foreground flex h-full overflow-hidden font-sans">
       {/* Loading overlay */}
       {loading && (
-        <div className="bg-background/80 fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm">
+        <div className="bg-background/80 fixed inset-0 z-50 flex animate-in fade-in-0 items-center justify-center backdrop-blur-sm duration-300 motion-reduce:animate-none motion-reduce:duration-0">
           <div className="text-muted-foreground flex flex-col items-center gap-3">
             <div className="border-border border-t-primary h-8 w-8 animate-spin rounded-full border-4" />
             <span className="text-sm">{t('app.loading')}</span>
@@ -420,43 +424,46 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
       )}
 
       {/* Mobile backdrop */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 z-40 bg-black/40 md:hidden"
-          aria-hidden="true"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
+      <AnimatePresence>
+        {mobileSidebarOpen && (
+          <motion.div
+            key="mobile-sidebar-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: reducedMotion ? 0.01 : 0.2, ease: 'easeOut' }}
+            className="fixed inset-0 z-40 bg-black/40 md:hidden"
+            aria-hidden="true"
+            onClick={() => setMobileSidebarOpen(false)}
+          />
+        )}
+      </AnimatePresence>
 
       {/* ─── Sidebar ───────────────────────────────────────────────────────── */}
-      {leftPanelHidden ? (
-        <div className="border-border bg-card hidden w-10 shrink-0 flex-col items-center border-r py-3 md:flex">
-          <button
-            type="button"
-            aria-label={t('sidebar.show')}
-            className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-1.5 transition-colors"
-            onClick={() => setLeftPanelHidden(false)}
-          >
-            <ChevronRight size={20} />
-          </button>
-        </div>
-      ) : (
-        <aside
-          className={cn(
-            'border-border bg-card flex w-64 shrink-0 flex-col border-r shadow-sm',
-            'fixed inset-y-0 left-0 z-50 transition-transform duration-200 ease-in-out',
-            'md:relative md:z-auto',
-            mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
-            'md:translate-x-0',
-          )}
-        >
+      <motion.aside
+        className={cn(
+          'alive-surface border-border bg-card flex shrink-0 flex-col border-r shadow-sm overflow-hidden',
+          'fixed inset-y-0 left-0 z-50 transition-transform duration-300 ease-out',
+          'md:relative md:z-auto',
+          mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full',
+          'md:translate-x-0',
+        )}
+        initial={false}
+        animate={{ width: isCollapsedDesktop ? 40 : 256 }}
+        transition={
+          reducedMotion
+            ? { duration: 0.01 }
+            : { duration: 0.34, ease: [0.22, 1, 0.36, 1] }
+        }
+      >
+        <div className="flex h-full w-64 min-w-64 flex-col">
           {/* Sidebar header */}
           <div className="border-border flex items-center justify-between border-b px-4 py-3">
             <h1 className="text-primary text-xl font-semibold tracking-tight">{t('app.title')}</h1>
             <button
               type="button"
               aria-label={t('sidebar.hide')}
-              className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-1.5 transition-colors"
+              className="motion-interactive icon-pop-hover text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-1.5 transition-colors"
               onClick={() => setLeftPanelHidden(true)}
             >
               <ChevronLeft size={20} />
@@ -469,7 +476,7 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
               type="button"
               aria-label={t('sidebar.newPage')}
               data-testid="sidebar-new-page"
-              className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+              className="motion-interactive border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => treeOps.createFile(ROOT_ID)}
             >
               <FilePlus size={16} />
@@ -479,7 +486,7 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
               type="button"
               aria-label={t('sidebar.newFolder')}
               data-testid="sidebar-new-folder"
-              className="border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
+              className="motion-interactive border-border bg-background text-foreground hover:bg-accent hover:text-accent-foreground flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-sm font-medium transition-colors"
               onClick={() => treeOps.createFolder(ROOT_ID)}
             >
               <FolderPlus size={16} />
@@ -504,7 +511,7 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
                 <button
                   type="button"
                   onClick={() => setSearchQuery('')}
-                  className="text-muted-foreground hover:text-foreground"
+                  className="motion-interactive icon-spin-hover text-muted-foreground hover:text-foreground"
                   aria-label="Clear search"
                   data-testid="sidebar-clear-search"
                 >
@@ -522,7 +529,7 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
                   <button
                     type="button"
                     onClick={() => setActiveTags([])}
-                    className="flex items-center gap-1 rounded-full border border-indigo-300 px-2 py-0.5 text-xs text-indigo-600 transition-colors hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
+                    className="motion-interactive flex items-center gap-1 rounded-full border border-indigo-300 px-2 py-0.5 text-xs text-indigo-600 transition-colors hover:bg-indigo-50 dark:border-indigo-700 dark:text-indigo-400 dark:hover:bg-indigo-900/30"
                     title={t(I18N_CLEAR_TAG_FILTER)}
                   >
                     <X size={9} />
@@ -537,7 +544,7 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
                       type="button"
                       onClick={() => toggleTag(tag)}
                       className={cn(
-                        'rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
+                        'motion-interactive rounded-full border px-2 py-0.5 text-xs font-medium transition-colors',
                         isActive
                           ? 'border-indigo-400 bg-indigo-600 text-white dark:border-indigo-500 dark:bg-indigo-500'
                           : 'border-border bg-muted/40 text-muted-foreground hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-700 dark:hover:bg-indigo-900/30 dark:hover:text-indigo-300',
@@ -582,7 +589,7 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
                       key={page.id}
                       type="button"
                       className={cn(
-                        'flex w-full flex-col items-start rounded-md px-3 py-2 text-left text-sm transition-colors',
+                        'motion-interactive flex w-full flex-col items-start rounded-md px-3 py-2 text-left text-sm transition-colors',
                         page.id === activePageId
                           ? 'bg-accent text-accent-foreground'
                           : 'text-foreground hover:bg-accent/50',
@@ -612,8 +619,34 @@ export function Workspace({ initialRoutePageId }: WorkspaceProps) {
               </div>
             )}
           </div>
-        </aside>
-      )}
+        </div>
+
+        <motion.div
+          className="border-border bg-card absolute inset-y-0 left-0 z-10 hidden w-10 items-start justify-center border-r py-3 md:flex"
+          initial={false}
+          animate={{ opacity: isCollapsedDesktop ? 1 : 0 }}
+          transition={
+            reducedMotion
+              ? { duration: 0.01 }
+              : {
+                  duration: isCollapsedDesktop ? 0.16 : 0.1,
+                  delay: isCollapsedDesktop ? 0.18 : 0,
+                  ease: [0.22, 1, 0.36, 1],
+                }
+          }
+          style={{ pointerEvents: isCollapsedDesktop ? 'auto' : 'none' }}
+          aria-hidden={!isCollapsedDesktop}
+        >
+          <button
+            type="button"
+            aria-label={t('sidebar.show')}
+            className="motion-interactive icon-pop-hover text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-1.5 transition-colors"
+            onClick={() => setLeftPanelHidden(false)}
+          >
+            <ChevronRight size={20} />
+          </button>
+        </motion.div>
+      </motion.aside>
 
       {/* ─── Main content ───────────────────────────────────────────────────── */}
       <MainContent

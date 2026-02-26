@@ -29,7 +29,7 @@ export function RecordingIndicator() {
       <button
         aria-label="Stop recording"
         onClick={() => stopRecording(recordingBlockId)}
-        className="ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
+        className="motion-interactive ml-2 inline-flex h-7 w-7 items-center justify-center rounded-full bg-white/10 text-white hover:bg-white/20"
       >
         <X size={12} />
       </button>

@@ -4,9 +4,11 @@ import React from 'react';
 
 import { usePathname, useRouter } from 'next/navigation';
 
+import { motion, useReducedMotion } from 'framer-motion';
 import { BarChart2, BookHeart, BookOpen, Settings } from 'lucide-react';
 
 import { useSettingsDialog } from '@/components/features/SettingsDialog/useSettingsDialog';
+import { TooltipProvider } from '@/components/shared/ui/tooltip';
 import { getLastNotebookPageId } from '@/lib/notebookPageMemory';
 import { useStatsStore } from '@/lib/statsStore';
 
@@ -37,6 +39,7 @@ const TOP_ITEMS = [
 export function ActivityBar() {
   const pathname = usePathname();
   const router = useRouter();
+  const reducedMotion = useReducedMotion();
   const { openSettings } = useSettingsDialog();
   const { enabled: statisticsEnabled } = useStatsStore();
 
@@ -66,32 +69,38 @@ export function ActivityBar() {
   };
 
   return (
-    <nav
-      aria-label="Application sections"
-      className="bg-background flex h-full w-12 shrink-0 flex-col items-center gap-1 border-r py-2"
-    >
-      {/* Top section items */}
-      <div className="flex flex-1 flex-col gap-1">
-        {visibleItems.map((item) => (
-          <ActivityBarItem
-            key={item.id}
-            icon={item.icon}
-            label={item.label}
-            active={activeId === item.id}
-            disabled={'disabled' in item ? item.disabled : false}
-            onClick={
-              !('disabled' in item) || !item.disabled
-                ? () => {
-                    navigateToSection(item);
-                  }
-                : undefined
-            }
-          />
-        ))}
-      </div>
+    <TooltipProvider>
+      <motion.nav
+        key={`activity-bar-${activeId}`}
+        aria-label="Application sections"
+        className="alive-surface bg-background flex h-full w-12 shrink-0 flex-col items-center gap-1 border-r py-2"
+        initial={reducedMotion ? false : { x: -20, opacity: 0 }}
+        animate={{ x: 0, opacity: 1 }}
+        transition={reducedMotion ? { duration: 0.01 } : { type: 'spring', stiffness: 360, damping: 30, mass: 0.9 }}
+      >
+        {/* Top section items */}
+        <div className="flex flex-1 flex-col gap-1">
+          {visibleItems.map((item) => (
+            <ActivityBarItem
+              key={item.id}
+              icon={item.icon}
+              label={item.label}
+              active={activeId === item.id}
+              disabled={'disabled' in item ? item.disabled : false}
+              onClick={
+                !('disabled' in item) || !item.disabled
+                  ? () => {
+                      navigateToSection(item);
+                    }
+                  : undefined
+              }
+            />
+          ))}
+        </div>
 
-      {/* Pinned bottom: Settings */}
-      <ActivityBarItem icon={<Settings size={20} />} label="Settings" onClick={openSettings} />
-    </nav>
+        {/* Pinned bottom: Settings */}
+        <ActivityBarItem icon={<Settings size={20} />} label="Settings" onClick={openSettings} />
+      </motion.nav>
+    </TooltipProvider>
   );
 }

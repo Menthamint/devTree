@@ -249,7 +249,7 @@ export function VoiceDictationButton({
       title={listening ? t('voice.stopRecording') : t('voice.startRecording')}
       onMouseDown={handleToggleRecording}
       className={cn(
-        'flex h-7 w-7 items-center justify-center rounded text-sm transition-colors',
+        'motion-interactive flex h-7 w-7 items-center justify-center rounded text-sm transition-colors',
         listening
           ? 'animate-pulse bg-red-500 text-white'
           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',

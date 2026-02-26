@@ -179,7 +179,7 @@ function CanvasNodeView({ node, updateAttributes }: ReactNodeViewProps) {
       onClick={handleFullscreenToggle}
       aria-label={fullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
       data-testid="canvas-fullscreen-toggle"
-      className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-0.5"
+      className="motion-interactive icon-pop-hover text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-0.5"
     >
       {fullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
     </button>
@@ -230,7 +230,7 @@ function CanvasNodeView({ node, updateAttributes }: ReactNodeViewProps) {
         fullscreen &&
         createPortal(
           <div
-            className="bg-card fixed inset-0 z-[9999] flex flex-col"
+            className="bg-card fixed inset-0 z-9999 flex flex-col"
             data-testid="canvas-fullscreen-overlay"
           >
             <BlockHeader

@@ -90,11 +90,11 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="bg-muted/30 flex min-h-dvh items-center justify-center px-4 py-8">
-      <div className="border-border bg-card w-full max-w-md rounded-2xl border p-6 shadow-lg sm:p-10">
+      <div className="motion-surface alive-shadow border-border bg-card w-full max-w-md rounded-2xl border p-6 shadow-lg sm:p-10">
         <div className="mb-8 text-center">
           <Link
             href="/"
-            className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 text-lg font-bold text-white shadow-md"
+            className="motion-interactive mb-4 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-linear-to-br from-indigo-500 to-violet-600 text-lg font-bold text-white shadow-md"
           >
             LT
           </Link>
@@ -157,7 +157,7 @@ export default function ForgotPasswordPage() {
                 type="password"
                 value={newPassword}
                 onChange={(e) => setNewPassword(e.target.value)}
-                className="border-border bg-background text-foreground focus:border-ring focus:ring-ring/20 w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2"
+                className="motion-interactive border-border bg-background text-foreground focus:border-ring focus:ring-ring/20 w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2"
                 placeholder="Enter your new password"
               />
             </div>
@@ -174,7 +174,7 @@ export default function ForgotPasswordPage() {
                 type="password"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
-                className="border-border bg-background text-foreground focus:border-ring focus:ring-ring/20 w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2"
+                className="motion-interactive border-border bg-background text-foreground focus:border-ring focus:ring-ring/20 w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2"
                 placeholder="Confirm your new password"
               />
             </div>
@@ -182,7 +182,7 @@ export default function ForgotPasswordPage() {
               type="submit"
               data-testid="reset-submit"
               disabled={submitting}
-              className="from-primary to-primary/85 text-primary-foreground hover:from-primary/95 hover:to-primary/80 focus:ring-ring focus:ring-offset-background flex h-11 w-full items-center justify-center rounded-lg bg-linear-to-r px-4 py-3 text-sm font-semibold shadow-md transition-all focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:opacity-60"
+              className="motion-interactive from-primary to-primary/85 text-primary-foreground hover:from-primary/95 hover:to-primary/80 focus:ring-ring focus:ring-offset-background flex h-11 w-full items-center justify-center rounded-lg bg-linear-to-r px-4 py-3 text-sm font-semibold shadow-md transition-all focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:opacity-60"
             >
               {submitting ? 'Updating...' : 'Update password'}
             </button>
@@ -202,7 +202,7 @@ export default function ForgotPasswordPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="border-border bg-background text-foreground focus:border-ring focus:ring-ring/20 w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2"
+                className="motion-interactive border-border bg-background text-foreground focus:border-ring focus:ring-ring/20 w-full rounded-lg border px-4 py-3 text-sm outline-none focus:ring-2"
                 placeholder="you@example.com"
               />
             </div>
@@ -210,7 +210,7 @@ export default function ForgotPasswordPage() {
               type="submit"
               data-testid="forgot-submit"
               disabled={submitting}
-              className="from-primary to-primary/85 text-primary-foreground hover:from-primary/95 hover:to-primary/80 focus:ring-ring focus:ring-offset-background flex h-11 w-full items-center justify-center rounded-lg bg-linear-to-r px-4 py-3 text-sm font-semibold shadow-md transition-all focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:opacity-60"
+              className="motion-interactive from-primary to-primary/85 text-primary-foreground hover:from-primary/95 hover:to-primary/80 focus:ring-ring focus:ring-offset-background flex h-11 w-full items-center justify-center rounded-lg bg-linear-to-r px-4 py-3 text-sm font-semibold shadow-md transition-all focus:ring-2 focus:ring-offset-2 focus:outline-none disabled:opacity-60"
             >
               {submitting ? 'Sending...' : 'Send reset link'}
             </button>
@@ -219,7 +219,7 @@ export default function ForgotPasswordPage() {
 
         <Link
           href="/login"
-          className="border-border bg-background text-foreground hover:bg-accent focus:ring-ring focus:ring-offset-background mt-3 flex h-11 w-full items-center justify-center rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
+          className="motion-interactive border-border bg-background text-foreground hover:bg-accent focus:ring-ring focus:ring-offset-background mt-3 flex h-11 w-full items-center justify-center rounded-lg border px-4 py-3 text-sm font-medium transition-colors focus:ring-2 focus:ring-offset-2 focus:outline-none"
           data-testid="forgot-back-to-login"
         >
           Back to sign in

@@ -3,7 +3,6 @@
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/shared/ui/tooltip';
 import { formatDateMedium, formatRelativeTime } from '@/lib/dateUtils';
@@ -32,35 +31,31 @@ export function PageMeta({ createdAt, updatedAt }: PageMetaProps) {
   return (
     <div className="text-muted-foreground/70 flex flex-wrap items-center gap-1.5 text-xs">
       {createdAt && (
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="cursor-default">
-                {t('main.createdAt', { date: formatRelativeTime(createdAt) })}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>{formatDateMedium(new Date(createdAt))}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="cursor-default">
+              {t('main.createdAt', { date: formatRelativeTime(createdAt) })}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{formatDateMedium(new Date(createdAt))}</p>
+          </TooltipContent>
+        </Tooltip>
       )}
 
       {createdAt && updatedAt && <span aria-hidden>·</span>}
 
       {updatedAt && (
-        <TooltipProvider delayDuration={300}>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <span className="cursor-default">
-                {t('main.updatedAt', { date: formatRelativeTime(updatedAt) })}
-              </span>
-            </TooltipTrigger>
-            <TooltipContent side="bottom">
-              <p>{formatDateMedium(new Date(updatedAt))}</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <span className="cursor-default">
+              {t('main.updatedAt', { date: formatRelativeTime(updatedAt) })}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent side="bottom">
+            <p>{formatDateMedium(new Date(updatedAt))}</p>
+          </TooltipContent>
+        </Tooltip>
       )}
     </div>
   );

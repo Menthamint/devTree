@@ -123,6 +123,14 @@
 }
 :root {
   --radius: 0.625rem;
+  --motion-duration-fast: 180ms;
+  --motion-duration-standard: 300ms;
+  --motion-duration-slow: 420ms;
+  --motion-ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --motion-ease-emphasized: cubic-bezier(0.16, 1, 0.3, 1);
+  --motion-scale-hover: 1.035;
+  --motion-scale-press: 0.972;
+  --motion-press-y: 1px;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
@@ -188,6 +196,206 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+}
+
+@layer utilities {
+  @keyframes navbar-slide-down {
+    from {
+      opacity: 0;
+      transform: translateY(-14px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes navbar-slide-right {
+    from {
+      opacity: 0;
+      transform: translateX(-14px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+
+  @keyframes alive-shadow-pulse {
+    0%,
+    100% {
+      box-shadow: 0 1px 2px color-mix(in oklch, var(--primary) 8%, transparent);
+    }
+
+    50% {
+      box-shadow: 0 8px 22px color-mix(in oklch, var(--primary) 16%, transparent);
+    }
+  }
+
+  .motion-interactive {
+    transform: translateZ(0);
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform,
+      filter;
+    transition-duration: var(--motion-duration-standard);
+    transition-timing-function: var(--motion-ease-standard);
+  }
+
+  .motion-interactive:active {
+    transform: translateY(var(--motion-press-y)) scale(var(--motion-scale-press));
+  }
+
+  @media (hover: hover) and (pointer: fine) {
+    .motion-interactive:hover {
+      transform: translateY(-2px) scale(var(--motion-scale-hover));
+    }
+  }
+
+  .motion-overlay {
+    will-change: opacity;
+  }
+
+  .motion-surface {
+    will-change: transform, opacity;
+  }
+
+  .alive-surface {
+    position: relative;
+    isolation: isolate;
+  }
+
+  .alive-shadow {
+    animation: alive-shadow-pulse 4.2s var(--motion-ease-standard) infinite;
+  }
+
+  .navbar-slide {
+    animation: navbar-slide-down 340ms var(--motion-ease-emphasized) both;
+    will-change: transform, opacity;
+  }
+
+  .navbar-slide-side {
+    animation: navbar-slide-right 360ms var(--motion-ease-emphasized) both;
+    will-change: transform, opacity;
+  }
+
+  .icon-spin-hover:hover > :where(svg),
+  .icon-spin-hover:focus-visible > :where(svg) {
+    transform: rotate(180deg) scale(1.13);
+    filter: saturate(1.18);
+  }
+
+  .icon-tilt-hover:hover > :where(svg),
+  .icon-tilt-hover:focus-visible > :where(svg) {
+    transform: rotate(-16deg) scale(1.13);
+    filter: saturate(1.15);
+  }
+
+  .icon-pop-hover:hover > :where(svg),
+  .icon-pop-hover:focus-visible > :where(svg) {
+    transform: translateY(-2px) scale(1.16);
+    filter: saturate(1.15);
+  }
+
+  :where(button[aria-label*='close' i], button[aria-label*='clear' i], button[aria-label*='remove' i]):not(
+      [disabled],
+      [aria-disabled='true'],
+      [data-no-motion='true'],
+      [data-no-icon-motion='true']
+    ):hover > :where(svg),
+  :where(button[aria-label*='close' i], button[aria-label*='clear' i], button[aria-label*='remove' i]):not(
+      [disabled],
+      [aria-disabled='true'],
+      [data-no-motion='true'],
+      [data-no-icon-motion='true']
+    ):focus-visible > :where(svg) {
+    transform: rotate(180deg) scale(1.13);
+    filter: saturate(1.18);
+  }
+}
+
+@layer base {
+  :where(button, [role='button'], [role='menuitem'], [role='tab'], a[href], input, textarea, select):not(
+      [disabled],
+      [aria-disabled='true'],
+      [data-no-motion='true']
+    ) {
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+    transition-duration: var(--motion-duration-standard);
+    transition-timing-function: var(--motion-ease-standard);
+  }
+
+  :where(a[href]):not([aria-disabled='true'], [data-no-motion='true']) {
+    text-underline-offset: 2px;
+  }
+
+  :where(button, [role='button'], [role='menuitem'], [role='tab']):not(
+      [disabled],
+      [aria-disabled='true'],
+      [data-no-motion='true'],
+      [data-no-press='true']
+    ):active {
+    transform: translateY(var(--motion-press-y)) scale(var(--motion-scale-press));
+  }
+
+  :where(button, [role='button'], [role='menuitem'], [role='tab'], a[href]) > :where(svg) {
+    transition: transform var(--motion-duration-fast) var(--motion-ease-emphasized),
+      filter var(--motion-duration-fast) var(--motion-ease-standard);
+    transform: translateZ(0);
+  }
+
+  :where(button, [role='button'], [role='menuitem'], [role='tab'], a[href]):not(
+      [disabled],
+      [aria-disabled='true'],
+      [data-no-motion='true'],
+      [data-no-icon-motion='true']
+    ):hover > :where(svg),
+  :where(button, [role='button'], [role='menuitem'], [role='tab'], a[href]):not(
+      [disabled],
+      [aria-disabled='true'],
+      [data-no-motion='true'],
+      [data-no-icon-motion='true']
+    ):focus-visible > :where(svg) {
+    transform: translateY(-1px) scale(1.12);
+    filter: saturate(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .motion-interactive,
+  .motion-interactive:hover,
+  .motion-interactive:active {
+    transform: none !important;
+  }
+
+  :where(button, [role='button'], [role='menuitem'], [role='tab']):active {
+    transform: none !important;
+  }
+
+  :where(button, [role='button'], [role='menuitem'], [role='tab'], a[href]) > :where(svg),
+  :where(button, [role='button'], [role='menuitem'], [role='tab'], a[href]):hover > :where(svg),
+  :where(button, [role='button'], [role='menuitem'], [role='tab'], a[href]):focus-visible > :where(svg) {
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .alive-shadow {
+    animation: none !important;
+  }
+
+  .navbar-slide,
+  .navbar-slide-side {
+    animation: none !important;
+  }
 }
 
 @layer base {

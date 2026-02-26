@@ -40,7 +40,7 @@ export function Switch({ checked, onChange, label, id, disabled = false }: Switc
       }}
       className={cn(
         // Track
-        'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
+        'motion-interactive relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent',
         'transition-colors duration-200 ease-in-out',
         'focus-visible:ring-ring focus-visible:ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2',
         checked ? 'bg-indigo-600 dark:bg-indigo-500' : 'bg-muted hover:bg-muted-foreground/20',
@@ -52,7 +52,7 @@ export function Switch({ checked, onChange, label, id, disabled = false }: Switc
         aria-hidden
         className={cn(
           'pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow-sm ring-0',
-          'transition-transform duration-200 ease-in-out',
+          'transition-transform duration-200 ease-out',
           checked ? 'translate-x-4' : 'translate-x-0',
         )}
       />

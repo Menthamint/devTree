@@ -25,7 +25,7 @@ function LinkCardNodeView({ node, updateAttributes }: ReactNodeViewProps) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="hover:bg-accent/30 flex items-center gap-3 p-3 transition-colors"
+      className="motion-interactive hover:bg-accent/30 flex items-center gap-3 p-3 transition-colors"
     >
       <div className="border-border bg-muted flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border">
         <ExternalLink size={14} className="text-muted-foreground" />

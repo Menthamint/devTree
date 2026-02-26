@@ -72,7 +72,7 @@ function TableBlockNodeView({ node, updateAttributes }: ReactNodeViewProps) {
               type="button"
               aria-label="Add column"
               onClick={addColumn}
-              className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs"
+              className="motion-interactive icon-pop-hover text-muted-foreground hover:text-foreground flex items-center gap-1 text-xs"
             >
               <Plus size={11} /> Column
             </button>
@@ -107,7 +107,7 @@ function TableBlockNodeView({ node, updateAttributes }: ReactNodeViewProps) {
                         <button
                           type="button"
                           onClick={() => removeColumn(col)}
-                          className="text-muted-foreground/40 hover:text-destructive"
+                          className="motion-interactive icon-spin-hover text-muted-foreground/40 hover:text-destructive"
                         >
                           <Trash2 size={11} />
                         </button>
@@ -143,7 +143,7 @@ function TableBlockNodeView({ node, updateAttributes }: ReactNodeViewProps) {
                     <button
                       type="button"
                       onClick={() => removeRow(rowIdx)}
-                      className="text-muted-foreground/40 hover:text-destructive"
+                      className="motion-interactive icon-spin-hover text-muted-foreground/40 hover:text-destructive"
                     >
                       <Trash2 size={11} />
                     </button>
@@ -161,7 +161,7 @@ function TableBlockNodeView({ node, updateAttributes }: ReactNodeViewProps) {
           <button
             type="button"
             onClick={addRow}
-            className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs"
+            className="motion-interactive icon-pop-hover text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs"
             onMouseDown={(e) => e.stopPropagation()}
           >
             <Plus size={11} /> Add row

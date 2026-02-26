@@ -344,7 +344,7 @@ export function MotivationBanner({ data, forceShow = false }: Readonly<Props>) {
         <button
           onClick={handleDismiss}
           aria-label="Dismiss"
-          className="text-muted-foreground hover:bg-muted/60 absolute top-2 right-2 rounded p-1.5 transition-colors"
+          className="motion-interactive text-muted-foreground hover:bg-muted/60 absolute top-2 right-2 rounded p-1.5 transition-colors"
         >
           <X className="h-3.5 w-3.5" />
         </button>

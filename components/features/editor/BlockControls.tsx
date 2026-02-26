@@ -472,7 +472,7 @@ function ActionItem({
     <button
       type="button"
       role="menuitem"
-      className={`block-action-item${danger ? 'block-action-item--danger' : ''}`}
+      className={`block-action-item${danger ? ' block-action-item--danger' : ''}`}
       onPointerDown={(e) => {
         e.preventDefault(); // keep editor focus
         e.stopPropagation(); // don't trigger outside-click listener
@@ -562,7 +562,7 @@ export const BlockPickerMenu = forwardRef<HTMLDivElement, BlockPickerMenuProps>(
             <button
               type="button"
               aria-label="Clear search"
-              className="text-muted-foreground hover:text-foreground shrink-0"
+              className="motion-interactive icon-spin-hover text-muted-foreground hover:text-foreground shrink-0"
               onPointerDown={(e) => {
                 e.preventDefault();
                 setQuery('');
@@ -585,7 +585,7 @@ export const BlockPickerMenu = forwardRef<HTMLDivElement, BlockPickerMenuProps>(
                   key={item.title}
                   type="button"
                   className={cn(
-                    'flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors',
+                    'motion-interactive flex w-full items-center gap-2.5 rounded px-2 py-1.5 text-left transition-colors',
                     index === selectedIndex
                       ? 'bg-accent text-accent-foreground'
                       : 'text-foreground hover:bg-accent/60',
@@ -597,7 +597,7 @@ export const BlockPickerMenu = forwardRef<HTMLDivElement, BlockPickerMenuProps>(
                     onSelect(item);
                   }}
                 >
-                  <span className="border-border bg-card flex h-7 w-7 shrink-0 items-center justify-center rounded-md border">
+                  <span className="motion-surface border-border bg-card flex h-7 w-7 shrink-0 items-center justify-center rounded-md border">
                     <Icon size={13} />
                   </span>
                   <div className="min-w-0">

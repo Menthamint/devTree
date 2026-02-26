@@ -254,7 +254,7 @@ function createNodeToTreeDataItem(
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Content
-            className="z-50 min-w-40 rounded-md border border-border bg-card p-1 shadow-md"
+            className="motion-surface z-50 min-w-40 rounded-md border border-border bg-card p-1 shadow-md data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0 data-[state=open]:zoom-in-95 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-1 data-[state=open]:duration-220 data-[state=closed]:duration-140 motion-reduce:animate-none"
             onClick={(e) => e.stopPropagation()}
           >
             {deleteButton && (

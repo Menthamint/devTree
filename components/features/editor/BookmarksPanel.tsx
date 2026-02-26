@@ -33,10 +33,10 @@ function collectBookmarks(editor: Editor): BookmarkEntry[] {
   return bookmarks;
 }
 
-type BookmarksPanelProps = {
+type BookmarksPanelProps = Readonly<{
   editor: Editor;
   onClose: () => void;
-};
+}>;
 
 export function BookmarksPanel({ editor, onClose }: BookmarksPanelProps) {
   const [bookmarks, setBookmarks] = useState<BookmarkEntry[]>([]);
@@ -69,7 +69,7 @@ export function BookmarksPanel({ editor, onClose }: BookmarksPanelProps) {
         <button
           type="button"
           onClick={onClose}
-          className="text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-0.5"
+          className="motion-interactive icon-spin-hover text-muted-foreground hover:bg-accent hover:text-accent-foreground rounded p-0.5"
         >
           <X size={13} />
         </button>
@@ -86,7 +86,7 @@ export function BookmarksPanel({ editor, onClose }: BookmarksPanelProps) {
               key={bm.id}
               type="button"
               onClick={() => jumpTo(bm.pos)}
-              className="hover:bg-accent flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
+              className="motion-interactive hover:bg-accent flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-sm"
             >
               <Bookmark size={12} className="shrink-0 text-amber-500" />
               <span className="text-foreground truncate">{bm.label}</span>

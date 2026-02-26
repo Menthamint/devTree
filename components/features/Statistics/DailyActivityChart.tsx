@@ -147,18 +147,18 @@ export function DailyActivityChart({ data, loading }: Props) {
   const displayData = buildDisplayData(sliced);
 
   return (
-    <Card>
+    <Card className="motion-surface motion-interactive hover:-translate-y-0.5 hover:shadow-md">
       <CardHeader className="flex flex-row items-start justify-between space-y-0">
         <div>
           <CardTitle>Daily Activity</CardTitle>
           <CardDescription>Session time and content changes over time</CardDescription>
         </div>
-        <div className="flex gap-1 rounded-md border p-0.5 text-xs">
+        <div className="motion-surface flex gap-1 rounded-md border p-0.5 text-xs">
           {(['30', '90'] as View[]).map((v) => (
             <button
               key={v}
               onClick={() => setView(v)}
-              className={`rounded px-2 py-1 transition-colors ${
+              className={`motion-interactive rounded px-2 py-1 transition-colors ${
                 view === v
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:text-foreground'

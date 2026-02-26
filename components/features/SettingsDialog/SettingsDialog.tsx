@@ -93,7 +93,7 @@ function SegmentButton({
       type="button"
       onClick={onClick}
       className={cn(
-        'rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
+        'motion-interactive rounded-md border px-3 py-1.5 text-sm font-medium transition-all',
         'focus-visible:ring-ring focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-1',
         active
           ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm dark:border-indigo-400 dark:bg-indigo-600'
@@ -321,7 +321,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 type="button"
                 onClick={() => setActiveTab(id)}
                 className={cn(
-                  'flex flex-1 items-center justify-center gap-2 px-3 py-2.5 text-center text-sm font-medium transition-colors sm:flex-initial sm:justify-start sm:px-4 sm:text-left',
+                  'motion-interactive flex flex-1 items-center justify-center gap-2 px-3 py-2.5 text-center text-sm font-medium transition-colors sm:flex-initial sm:justify-start sm:px-4 sm:text-left',
                   activeTab === id
                     ? 'bg-background text-foreground border-b-2 border-indigo-600 sm:border-r-2 sm:border-b-0 dark:border-indigo-400'
                     : 'text-muted-foreground hover:bg-muted/50 hover:text-foreground',

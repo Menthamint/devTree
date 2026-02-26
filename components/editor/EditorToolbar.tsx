@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
 import type { Editor } from '@tiptap/core';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import {
   AlignCenter,
   AlignJustify,
@@ -128,7 +129,7 @@ export function ToolbarButton({ onClick, active, title, children }: ToolbarButto
         onClick();
       }}
       className={cn(
-        'flex h-7 w-7 items-center justify-center rounded text-sm transition-colors',
+        'motion-interactive flex h-7 w-7 items-center justify-center rounded text-sm transition-colors',
         active
           ? 'bg-accent text-accent-foreground'
           : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground',
@@ -148,6 +149,8 @@ type EditorToolbarProps = Readonly<{
 
 export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
   const { locale } = useI18n();
+  const reducedMotion = useReducedMotion();
+  const popupDuration = reducedMotion ? 0.01 : 0.16;
 
   const linkInputRef = useRef<HTMLInputElement>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
@@ -410,10 +413,25 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
             style={{ backgroundColor: editor.getAttributes('textStyle').color || 'currentColor' }}
           />
         </ToolbarButton>
-        {colorOpen && (
-          <>
-            <div className="fixed inset-0 z-10" aria-hidden onClick={() => setColorOpen(false)} />
-            <div className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-40 rounded-lg border p-2 shadow-lg">
+        <AnimatePresence>
+          {colorOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed inset-0 z-10"
+                aria-hidden
+                onClick={() => setColorOpen(false)}
+              />
+              <motion.div
+                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-40 rounded-lg border p-2 shadow-lg"
+              >
               {TEXT_COLORS.map(({ name, value }) => (
                 <button
                   key={name}
@@ -433,9 +451,10 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
                   {name}
                 </button>
               ))}
-            </div>
-          </>
-        )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Highlight */}
@@ -451,14 +470,25 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
         >
           <Highlighter size={14} />
         </ToolbarButton>
-        {highlightOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              aria-hidden
-              onClick={() => setHighlightOpen(false)}
-            />
-            <div className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-40 rounded-lg border p-2 shadow-lg">
+        <AnimatePresence>
+          {highlightOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed inset-0 z-10"
+                aria-hidden
+                onClick={() => setHighlightOpen(false)}
+              />
+              <motion.div
+                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-40 rounded-lg border p-2 shadow-lg"
+              >
               {HIGHLIGHT_COLORS.map(({ name, value }) => (
                 <button
                   key={name}
@@ -478,9 +508,10 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
                   {name}
                 </button>
               ))}
-            </div>
-          </>
-        )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Link */}
@@ -496,10 +527,25 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
         >
           <LinkIcon size={14} />
         </ToolbarButton>
-        {linkOpen && (
-          <>
-            <div className="fixed inset-0 z-10" aria-hidden onClick={() => setLinkOpen(false)} />
-            <div className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-64 rounded-lg border p-2 shadow-lg">
+        <AnimatePresence>
+          {linkOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed inset-0 z-10"
+                aria-hidden
+                onClick={() => setLinkOpen(false)}
+              />
+              <motion.div
+                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-64 rounded-lg border p-2 shadow-lg"
+              >
               <input
                 ref={linkInputRef}
                 type="url"
@@ -540,9 +586,10 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
                   </button>
                 )}
               </div>
-            </div>
-          </>
-        )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Comment */}
@@ -567,10 +614,25 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
         >
           <MessageSquare size={14} />
         </ToolbarButton>
-        {commentOpen && (
-          <>
-            <div className="fixed inset-0 z-10" aria-hidden onClick={() => setCommentOpen(false)} />
-            <div className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-72 rounded-lg border p-2 shadow-lg">
+        <AnimatePresence>
+          {commentOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed inset-0 z-10"
+                aria-hidden
+                onClick={() => setCommentOpen(false)}
+              />
+              <motion.div
+                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-72 rounded-lg border p-2 shadow-lg"
+              >
               <label
                 htmlFor="editor-comment-input"
                 className="text-muted-foreground text-xs font-medium"
@@ -612,9 +674,10 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
                   </button>
                 )}
               </div>
-            </div>
-          </>
-        )}
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Bookmark */}
@@ -635,18 +698,30 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
         >
           <Bookmark size={14} />
         </ToolbarButton>
-        {bookmarksOpen && (
-          <>
-            <div
-              className="fixed inset-0 z-10"
-              aria-hidden
-              onClick={() => setBookmarksOpen(false)}
-            />
-            <div className="absolute top-full right-0 z-20 mt-1">
-              <BookmarksPanel editor={editor} onClose={() => setBookmarksOpen(false)} />
-            </div>
-          </>
-        )}
+        <AnimatePresence>
+          {bookmarksOpen && (
+            <>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="fixed inset-0 z-10"
+                aria-hidden
+                onClick={() => setBookmarksOpen(false)}
+              />
+              <motion.div
+                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
+                animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
+                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
+                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
+                className="absolute top-full right-0 z-20 mt-1"
+              >
+                <BookmarksPanel editor={editor} onClose={() => setBookmarksOpen(false)} />
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
       </div>
 
       <span className="bg-border mx-1 h-5 w-px" />

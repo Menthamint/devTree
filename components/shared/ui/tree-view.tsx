@@ -55,7 +55,7 @@ import { cn } from '@/lib/utils';
  * `group-hover/row:flex` on the actions slot.
  */
 const ROW_BASE =
-  'group group/row relative flex w-full cursor-pointer items-center rounded-sm py-1 pl-2 pr-1 text-left text-sm ' +
+  'motion-interactive group group/row relative flex w-full cursor-pointer items-center rounded-sm py-1 pl-2 pr-1 text-left text-sm ' +
   'before:absolute before:inset-y-0 before:left-0 before:right-0 before:-z-10 before:rounded-sm before:opacity-0 ' +
   'hover:before:bg-accent/70 hover:before:opacity-100 ' +
   'focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring';
@@ -415,7 +415,7 @@ const TreeNode = ({
              */}
             <ChevronRight
               className={cn(
-                'text-muted-foreground/60 mr-1 h-4 w-4 shrink-0 transition-transform duration-200',
+                'text-muted-foreground/60 mr-1 h-4 w-4 shrink-0 transition-transform duration-200 ease-out',
                 isOpen && 'rotate-90',
               )}
             />
@@ -443,7 +443,7 @@ const TreeNode = ({
           </AccordionPrimitive.Trigger>
         </AccordionPrimitive.Header>
 
-        <AccordionPrimitive.Content className="data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down overflow-hidden text-sm">
+        <AccordionPrimitive.Content className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down motion-reduce:animate-none">
           {/**
            * Children container.
            *

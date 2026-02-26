@@ -25,7 +25,7 @@ function getMilestoneLabel(streak: number): string | null {
 export function StreakCard({ data, loading }: Props) {
   if (loading || !data) {
     return (
-      <Card className="flex h-full flex-col justify-between">
+      <Card className="motion-surface flex h-full flex-col justify-between">
         <CardHeader>
           <CardTitle className="text-sm font-medium">Daily Streak</CardTitle>
         </CardHeader>
@@ -40,7 +40,7 @@ export function StreakCard({ data, loading }: Props) {
   const milestone = getMilestoneLabel(streakCurrent);
 
   return (
-    <Card className="flex h-full flex-col justify-between">
+    <Card className="motion-surface motion-interactive flex h-full flex-col justify-between hover:-translate-y-0.5 hover:shadow-md">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">Daily Streak</CardTitle>
         <Flame className="h-4 w-4 text-orange-500" />
@@ -82,7 +82,7 @@ export function StreakCard({ data, loading }: Props) {
               </div>
               <div className="bg-muted h-1.5 w-full rounded-full">
                 <div
-                  className="h-1.5 rounded-full bg-orange-500 transition-all"
+                  className="motion-interactive h-1.5 rounded-full bg-orange-500 transition-all"
                   style={{ width: `${pct}%` }}
                 />
               </div>
