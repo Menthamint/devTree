@@ -1,6 +1,6 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
 
-import { VoiceDictationLanguageButton } from '@/components/MainContent/voice-dictation/VoiceDictationLanguageButton';
+import { VoiceDictationLanguageButton } from '@/components/features/MainContent/voice-dictation/VoiceDictationLanguageButton';
 import { I18nProvider, type Locale } from '@/lib/i18n';
 
 const meta: Meta<typeof VoiceDictationLanguageButton> = {

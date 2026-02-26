@@ -15,6 +15,10 @@ describe('statsStore', () => {
   beforeEach(() => {
     useStatsStore.setState({
       enabled: true,
+      trackSessionTime: true,
+      trackPageTime: true,
+      trackFolderTime: true,
+      trackContentEvents: true,
       queue: [],
     });
     vi.clearAllMocks();
@@ -49,6 +53,49 @@ describe('statsStore', () => {
 
     useStatsStore.getState().setEnabled(true);
     expect(useStatsStore.getState().enabled).toBe(true);
+  });
+
+  it('clears queued events when disabling statistics globally', () => {
+    useStatsStore.getState().enqueue({
+      kind: 'SESSION_START',
+      timestamp: new Date().toISOString(),
+    });
+    expect(useStatsStore.getState().queue).toHaveLength(1);
+
+    useStatsStore.getState().setEnabled(false);
+    expect(useStatsStore.getState().queue).toHaveLength(0);
+  });
+
+  it('gates session events by trackSessionTime', () => {
+    useStatsStore.getState().setTrackSessionTime(false);
+    useStatsStore.getState().enqueue({
+      kind: 'SESSION_START',
+      timestamp: new Date().toISOString(),
+    });
+    expect(useStatsStore.getState().queue).toHaveLength(0);
+  });
+
+  it('gates page and writing events by trackPageTime', () => {
+    useStatsStore.getState().setTrackPageTime(false);
+    useStatsStore.getState().setTrackFolderTime(false);
+    const now = new Date().toISOString();
+    useStatsStore.getState().enqueue({ kind: 'PAGE_VISIT_START', pageId: 'p1', timestamp: now });
+    useStatsStore.getState().enqueue({
+      kind: 'WRITING_SESSION_START',
+      pageId: 'p1',
+      timestamp: now,
+    });
+    expect(useStatsStore.getState().queue).toHaveLength(0);
+  });
+
+  it('gates content events by trackContentEvents', () => {
+    useStatsStore.getState().setTrackContentEvents(false);
+    useStatsStore.getState().enqueue({
+      kind: 'CONTENT_EVENT',
+      type: 'PAGE_VIEWED',
+      timestamp: new Date().toISOString(),
+    });
+    expect(useStatsStore.getState().queue).toHaveLength(0);
   });
 
   // ── queue management ──────────────────────────────────────────────────────

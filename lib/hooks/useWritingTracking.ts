@@ -20,12 +20,12 @@ import { useStatsStore } from '@/lib/stores/statsStore';
 interface WritingTrackingOptions {
   isEditMode: boolean;
   pageId: string | undefined;
-  folderId?: string | undefined;
+  folderId?: string;
 }
 
 export function useWritingTracking({ isEditMode, pageId, folderId }: WritingTrackingOptions) {
   const { status } = useSession();
-  const { enqueue, flush, enabled } = useStatsStore();
+  const { enqueue, flush, enabled, trackPageTime } = useStatsStore();
   const sessionRef = useRef<{ startMs: number; pageId: string } | null>(null);
 
   // Helper — close the current writing session and flush.
@@ -43,7 +43,7 @@ export function useWritingTracking({ isEditMode, pageId, folderId }: WritingTrac
 
   // React to isEditMode / pageId changes.
   useEffect(() => {
-    if (status !== 'authenticated' || !enabled) return;
+    if (status !== 'authenticated' || !enabled || !trackPageTime) return;
 
     if (isEditMode && pageId) {
       // Close any lingering session for a different page before starting a new one.
@@ -62,15 +62,13 @@ export function useWritingTracking({ isEditMode, pageId, folderId }: WritingTrac
           timestamp: new Date(startMs).toISOString(),
         });
       }
-    } else {
+    } else if (sessionRef.current) {
       // Edit mode turned off or page cleared — close any open session.
-      if (sessionRef.current) {
-        closeSession(sessionRef.current.pageId, sessionRef.current.startMs);
-        sessionRef.current = null;
-      }
+      closeSession(sessionRef.current.pageId, sessionRef.current.startMs);
+      sessionRef.current = null;
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isEditMode, pageId, status, enabled]);
+  }, [isEditMode, pageId, status, enabled, trackPageTime]);
 
   // Flush on tab close / navigation away.
   useEffect(() => {

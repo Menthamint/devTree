@@ -10,6 +10,7 @@ public class SettingsPage(IPage page)
     private ILocator Dialog      => _page.GetByRole(AriaRole.Dialog);
     private ILocator CloseBtn    => Dialog.GetByRole(AriaRole.Button, new() { Name = "Close" });
     private ILocator AppearanceTab => Dialog.Locator("button:has-text('Appearance'), button:has-text('Зовнішній вигляд')").First;
+    private ILocator StatisticsTab => Dialog.Locator("button:has-text('Statistics'), button:has-text('Статистика')").First;
 
     private static string[] ThemeLabels(string theme) => theme switch
     {
@@ -66,6 +67,34 @@ public class SettingsPage(IPage page)
     {
         await OpenAppearanceTabAsync();
         await DialogButtonByAnyLabel(LanguageLabels(language)).ClickAsync();
+    }
+
+    public async Task OpenStatisticsTabAsync()
+    {
+        var firstSwitch = Dialog.GetByRole(AriaRole.Switch).First;
+        if (await firstSwitch.IsVisibleAsync())
+            return;
+
+        await StatisticsTab.ClickAsync();
+        await firstSwitch.WaitForAsync(new() { Timeout = 5_000 });
+    }
+
+    public Task ToggleSwitchByLabelAsync(string label) =>
+        Dialog.GetByRole(AriaRole.Switch, new() { Name = label }).First.ClickAsync();
+
+    public Task ToggleSwitchByIndexAsync(int index) =>
+        Dialog.GetByRole(AriaRole.Switch).Nth(index).ClickAsync();
+
+    public async Task<bool> IsSwitchCheckedAsync(string label)
+    {
+        var value = await Dialog.GetByRole(AriaRole.Switch, new() { Name = label }).First.GetAttributeAsync("aria-checked");
+        return value == "true";
+    }
+
+    public async Task<bool> IsSwitchCheckedAsync(int index)
+    {
+        var value = await Dialog.GetByRole(AriaRole.Switch).Nth(index).GetAttributeAsync("aria-checked");
+        return value == "true";
     }
 
     // ── Queries ────────────────────────────────────────────────────────────

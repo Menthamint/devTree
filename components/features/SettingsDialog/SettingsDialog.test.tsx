@@ -65,6 +65,22 @@ describe('SettingsDialog', () => {
     expect(screen.getByText('Recording start sound')).toBeInTheDocument();
   });
 
+  it('shows statistics toggles in Statistics tab', async () => {
+    const user = userEvent.setup();
+    render(
+      <Wrapper>
+        <SettingsDialog open onOpenChange={() => {}} />
+      </Wrapper>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /statistics/i }));
+
+    expect(screen.getByText('Enable statistics')).toBeInTheDocument();
+    expect(screen.getByText('Track session time')).toBeInTheDocument();
+    expect(screen.getByText('Track time per page')).toBeInTheDocument();
+    expect(screen.getByText('Track content changes')).toBeInTheDocument();
+  });
+
   it('does not render when closed', () => {
     render(
       <Wrapper>

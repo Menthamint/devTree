@@ -20,6 +20,7 @@ const meta: Meta<typeof SettingsDialog> = {
   title: 'Components/SettingsDialog',
   component: SettingsDialog,
   parameters: { layout: 'centered' },
+  tags: ['autodocs'],
   render: () => <SettingsDialogDemo />,
 };
 

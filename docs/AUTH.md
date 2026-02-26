@@ -28,6 +28,18 @@ How authentication works: NextAuth, credentials vs OAuth, session, route protect
 - **Credentials authorize:** Look up User by email, verify password with `verifyPassword` (scrypt), return user payload.
 - **Registration:** `POST /api/auth/register` — validate email and password strength, hash with `hashPassword`, create User. Front-end then signs in via credentials.
 
+### Password reset
+
+- **Request reset:** `POST /api/auth/forgot-password` with `{ email }`.
+  - Validates email shape, always returns success for unknown emails (prevents account enumeration).
+  - Stores a one-time token in `VerificationToken` using identifier `password-reset:<email>`.
+  - Stores only a SHA-256 hash of the raw token.
+  - Sends reset URL to email via Nodemailer (Gmail transport when configured).
+- **Confirm reset:** `POST /api/auth/reset-password` with `{ email, token, newPassword }`.
+  - Validates token + expiry and password policy.
+  - Updates `User.password` with scrypt hash.
+  - Deletes all reset tokens for that email (single-use guarantee).
+
 ---
 
 ## 4. OAuth (Google, GitHub)
@@ -65,3 +77,14 @@ All require an authenticated user (verified inline via `getToken` in each handle
 ## 7. Default admin
 
 In `prisma/seed.ts`: when `ADMIN_PASSWORD` is set, upserts user with `ADMIN_EMAIL` (default `admin@localhost`) and hashed password. Run `pnpm db:seed` after setting env. See [SETUP.md](./SETUP.md) and main README for env table.
+
+---
+
+## 8. Password reset email configuration
+
+- Password reset email delivery uses Nodemailer.
+- For Gmail transport, set:
+  - `GMAIL_USER`
+  - `GMAIL_APP_PASSWORD` (Google App Password)
+  - optional `EMAIL_FROM`
+- When Gmail variables are missing, DevTree logs the reset link on the server in development as a fallback.

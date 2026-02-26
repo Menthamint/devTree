@@ -36,6 +36,20 @@ public class LoginTests : E2ETestBase
     }
 
     [Test]
+    public async Task ForgotPasswordPage_SubmitEmail_ShowsSuccessNotice()
+    {
+        var link = Page.GetByTestId("login-forgot-link");
+        await link.ClickAsync();
+
+        await Expect(Page).ToHaveURLAsync(new System.Text.RegularExpressions.Regex("/forgot-password"));
+
+        await Page.GetByTestId("forgot-email").FillAsync("unknown-user@devtree.local");
+        await Page.GetByTestId("forgot-submit").ClickAsync();
+
+        await Expect(Page.GetByTestId("forgot-password-notice")).ToBeVisibleAsync(new() { Timeout = 5_000 });
+    }
+
+    [Test]
     public async Task LoginPage_ShowsSignUpSwitch()
     {
         await Expect(Page.GetByTestId("auth-switch-register")).ToBeVisibleAsync();

@@ -25,7 +25,13 @@ function SyncUserPreferences() {
   const { setTheme } = useTheme();
   const { setLocale } = useI18n();
   const { setTagsPerPage, setTagsPerBlock, setRecordingStartSound } = useSettingsStore();
-  const { setEnabled: setStatsEnabled } = useStatsStore();
+  const {
+    setEnabled: setStatsEnabled,
+    setTrackSessionTime,
+    setTrackPageTime,
+    setTrackFolderTime,
+    setTrackContentEvents,
+  } = useStatsStore();
   const appliedRef = useRef(false);
 
   useEffect(() => {
@@ -42,6 +48,10 @@ function SyncUserPreferences() {
         setRecordingStartSound(prefs.recordingStartSoundEnabled);
       // Statistics tracking — enabled by default
       setStatsEnabled(prefs.statisticsEnabled ?? true);
+      setTrackSessionTime(prefs.trackSessionTime ?? true);
+      setTrackPageTime(prefs.trackPageTime ?? true);
+      setTrackFolderTime(prefs.trackFolderTime ?? true);
+      setTrackContentEvents(prefs.trackContentEvents ?? true);
     });
   }, [
     status,
@@ -52,6 +62,10 @@ function SyncUserPreferences() {
     setTagsPerBlock,
     setRecordingStartSound,
     setStatsEnabled,
+    setTrackSessionTime,
+    setTrackPageTime,
+    setTrackFolderTime,
+    setTrackContentEvents,
   ]);
 
   return null;

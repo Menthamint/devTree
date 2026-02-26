@@ -144,4 +144,24 @@ public class SettingsTests : E2ETestBase
         var btn = Page.GetByRole(AriaRole.Dialog).Locator(languageSelector).First;
         await Expect(btn).ToBeVisibleAsync();
     }
+
+    // ── Statistics toggles ──────────────────────────────────────────────────
+
+    [Test]
+    public async Task StatisticsTab_TrackingToggles_AreVisibleAndInteractive()
+    {
+        await App.OpenSettingsAsync();
+        await App.Settings.OpenStatisticsTabAsync();
+
+        // Indexes on Statistics tab: 0=global, 1=session, 2=page, 3=content.
+        var sessionBefore = await App.Settings.IsSwitchCheckedAsync(1);
+        await App.Settings.ToggleSwitchByIndexAsync(1);
+        var sessionAfter = await App.Settings.IsSwitchCheckedAsync(1);
+        Assert.That(sessionAfter, Is.Not.EqualTo(sessionBefore));
+
+        var contentBefore = await App.Settings.IsSwitchCheckedAsync(3);
+        await App.Settings.ToggleSwitchByIndexAsync(3);
+        var contentAfter = await App.Settings.IsSwitchCheckedAsync(3);
+        Assert.That(contentAfter, Is.Not.EqualTo(contentBefore));
+    }
 }

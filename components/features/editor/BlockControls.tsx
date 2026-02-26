@@ -509,8 +509,8 @@ export const BlockPickerMenu = forwardRef<HTMLDivElement, BlockPickerMenuProps>(
       : SLASH_ITEMS;
 
     // Reset selection when filter changes
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- calling setState in useEffect is valid React
     useEffect(() => {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset highlight to first match after query change
       setSelectedIndex(0);
     }, [query]);
 

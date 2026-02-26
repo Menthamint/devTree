@@ -135,7 +135,7 @@ describe('POST /api/user/libraries', () => {
   it('returns 400 when sourceUrl is not a valid http(s) URL', async () => {
     mockGetToken.mockResolvedValue({ sub: 'user1' });
     const res = await POST(
-      // eslint-disable-next-line sonarjs/code-eval -- intentional test input to verify javascript: URLs are rejected
+      // eslint-disable-next-line sonarjs/no-clear-text-protocols -- intentional test input to verify javascript: URLs are rejected
       makeRequest('POST', { sourceUrl: 'javascript:alert(1)', items: [] }),
     );
     expect(res.status).toBe(400);

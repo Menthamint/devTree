@@ -3,22 +3,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
 import { hashPassword, verifyPassword } from '@/lib/auth/password';
+import { validatePassword } from '@/lib/auth/passwordPolicy';
 import { prisma } from '@/lib/prisma';
-
-const MIN_LENGTH = 8;
-const HAS_UPPERCASE = /[A-Z]/;
-const HAS_LOWERCASE = /[a-z]/;
-const HAS_NUMBER = /\d/;
-const HAS_SPECIAL = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
-
-function validateNewPassword(password: string): string | null {
-  if (password.length < MIN_LENGTH) return 'At least 8 characters';
-  if (!HAS_UPPERCASE.test(password)) return 'Add an uppercase letter';
-  if (!HAS_LOWERCASE.test(password)) return 'Add a lowercase letter';
-  if (!HAS_NUMBER.test(password)) return 'Add a number';
-  if (!HAS_SPECIAL.test(password)) return 'Add a special character';
-  return null;
-}
 
 export async function PATCH(req: NextRequest) {
   const token = await getToken({
@@ -62,7 +48,7 @@ export async function PATCH(req: NextRequest) {
     return NextResponse.json({ error: 'Current password is incorrect' }, { status: 400 });
   }
 
-  const err = validateNewPassword(newPassword);
+  const err = validatePassword(newPassword);
   if (err) {
     return NextResponse.json({ error: err }, { status: 400 });
   }

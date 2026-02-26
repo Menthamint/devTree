@@ -41,8 +41,16 @@ export async function loadUserPreferences(): Promise<UserPreferencesPayload | nu
  * Call after updating theme, locale, or feature toggles in the UI.
  */
 export async function saveUserPreferences(data: UserPreferencesPayload): Promise<void> {
+  await saveUserPreferencesWithOptions(data);
+}
+
+export async function saveUserPreferencesWithOptions(
+  data: UserPreferencesPayload,
+  opts?: { purgeDisabledStats?: boolean },
+): Promise<void> {
   try {
-    await fetch('/api/user/preferences', {
+    const query = opts?.purgeDisabledStats ? '?purgeDisabledStats=1' : '';
+    await fetch(`/api/user/preferences${query}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(data),

@@ -16,7 +16,7 @@ import { type ContentEventType, useStatsStore } from '@/lib/stores/statsStore';
 
 interface PageTrackingOptions {
   pageId: string | undefined;
-  folderId?: string | undefined;
+  folderId?: string;
 }
 
 /** Emit a content event directly (e.g. from API success callbacks). */
@@ -37,7 +37,7 @@ function emitContentEvent(opts: {
 
 export function usePageTracking({ pageId, folderId }: PageTrackingOptions) {
   const { status } = useSession();
-  const { enqueue, flush, enabled } = useStatsStore();
+  const { enqueue, flush, enabled, trackPageTime, trackFolderTime } = useStatsStore();
   const visitStartRef = useRef<{ pageId: string; startMs: number } | null>(null);
 
   const closeVisit = (currentPageId: string, startMs: number) => {
@@ -53,7 +53,7 @@ export function usePageTracking({ pageId, folderId }: PageTrackingOptions) {
   };
 
   useEffect(() => {
-    if (status !== 'authenticated' || !enabled) return;
+    if (status !== 'authenticated' || !enabled || !(trackPageTime || trackFolderTime)) return;
     if (!pageId) return;
 
     // Close previous visit if switching pages
@@ -92,11 +92,11 @@ export function usePageTracking({ pageId, folderId }: PageTrackingOptions) {
     return () => {
       window.removeEventListener('beforeunload', handleUnload);
       // Close visit on pageId change (handled above on next run) or unmount
-      if (visitStartRef.current && visitStartRef.current.pageId === pageId) {
+      if (visitStartRef.current?.pageId === pageId) {
         closeVisit(pageId, visitStartRef.current.startMs);
         visitStartRef.current = null;
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pageId, status, enabled]);
+  }, [pageId, status, enabled, trackPageTime, trackFolderTime]);
 }

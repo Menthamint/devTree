@@ -21,13 +21,13 @@ const FLUSH_INTERVAL_MS = 60_000;
 
 export function useSessionTracking() {
   const { status } = useSession();
-  const { enqueue, flush, enabled } = useStatsStore();
+  const { enqueue, flush, enabled, trackSessionTime } = useStatsStore();
   // eslint-disable-next-line react-hooks/purity -- Date.now() in useRef initializer is intentional (records mount time)
   const sessionStartRef = useRef<number>(Date.now());
   const flushTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    if (status !== 'authenticated' || !enabled) return;
+    if (status !== 'authenticated' || !enabled || !trackSessionTime) return;
 
     const startTime = Date.now();
     sessionStartRef.current = startTime;
@@ -72,5 +72,5 @@ export function useSessionTracking() {
       window.removeEventListener('beforeunload', handleUnload);
       if (flushTimerRef.current) clearInterval(flushTimerRef.current);
     };
-  }, [status, enabled, enqueue, flush]);
+  }, [status, enabled, trackSessionTime, enqueue, flush]);
 }

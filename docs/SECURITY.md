@@ -35,6 +35,7 @@ Notes on security measures, safe patterns, and performance considerations.
 - **Dynamic layout:** Root layout uses `export const dynamic = 'force-dynamic'` to re-evaluate locale on every request.
 - **Heavy UI:** Monaco (code block) and Mermaid (diagram) are loaded dynamically where possible to keep initial bundle smaller.
 - **Preferences:** Logged-in user preferences (theme, locale, feature flags) are loaded once after auth and applied; they are also persisted to the DB and cookie so refresh keeps settings.
+- **Statistics privacy controls:** Per-metric tracking flags (`trackSessionTime`, `trackPageTime`, `trackContentEvents`) are enforced client-side and server-side. When a metric is disabled with purge enabled, related historical records are deleted from statistics tables for that user.
 
 ---
 

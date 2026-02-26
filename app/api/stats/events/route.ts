@@ -18,6 +18,48 @@ type StatEvent = {
   type?: string; // for CONTENT_EVENT
 };
 
+type StatsPreferences = {
+  statisticsEnabled?: boolean;
+  trackSessionTime?: boolean;
+  trackPageTime?: boolean;
+  trackFolderTime?: boolean;
+  trackContentEvents?: boolean;
+};
+
+function shouldTrackEvent(event: StatEvent, prefs: StatsPreferences): boolean {
+  const statisticsEnabled = prefs.statisticsEnabled ?? true;
+  const trackSessionTime = prefs.trackSessionTime ?? true;
+  const trackPageTime = prefs.trackPageTime ?? true;
+  const trackFolderTime = prefs.trackFolderTime ?? true;
+  const trackContentEvents = prefs.trackContentEvents ?? true;
+
+  if (!statisticsEnabled) return false;
+
+  if ((event.kind === 'SESSION_START' || event.kind === 'SESSION_END') && !trackSessionTime) {
+    return false;
+  }
+
+  if (
+    (event.kind === 'PAGE_VISIT_START' || event.kind === 'PAGE_VISIT_END') &&
+    !(trackPageTime || trackFolderTime)
+  ) {
+    return false;
+  }
+
+  if (
+    (event.kind === 'WRITING_SESSION_START' || event.kind === 'WRITING_SESSION_END') &&
+    !trackPageTime
+  ) {
+    return false;
+  }
+
+  if (event.kind === 'CONTENT_EVENT' && !trackContentEvents) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function POST(req: NextRequest) {
   const auth = await requireAuth(req);
   if ('error' in auth) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
@@ -36,11 +78,21 @@ export async function POST(req: NextRequest) {
 
   const events = body.events.slice(0, MAX_EVENTS_PER_REQUEST);
 
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { preferences: true },
+  });
+  const prefs = (user?.preferences as StatsPreferences | null) ?? {};
+  const filteredEvents = events.filter((event) => shouldTrackEvent(event, prefs));
+  if (filteredEvents.length === 0) {
+    return NextResponse.json({ ok: true });
+  }
+
   // Process events in a single transaction
   try {
     // eslint-disable-next-line sonarjs/cognitive-complexity -- complex switch handles all event kinds
     await prisma.$transaction(async (tx) => {
-      for (const ev of events) {
+      for (const ev of filteredEvents) {
         const ts = ev.timestamp ? new Date(ev.timestamp) : new Date();
 
         switch (ev.kind) {

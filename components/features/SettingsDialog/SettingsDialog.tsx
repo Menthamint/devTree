@@ -45,7 +45,7 @@ import { Switch } from '@/components/shared/ui/Switch';
 import { type Locale, useI18n } from '@/lib/i18n';
 import { useSettingsStore } from '@/lib/settingsStore';
 import { useStatsStore } from '@/lib/statsStore';
-import { saveUserPreferences } from '@/lib/userPreferences';
+import { saveUserPreferences, saveUserPreferencesWithOptions } from '@/lib/userPreferences';
 import { cn } from '@/lib/utils';
 
 type SettingsTab = 'account' | 'appearance' | 'features' | 'statistics';
@@ -149,7 +149,17 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     setRecordingStartSound,
     setDictationFormatting,
   } = useSettingsStore();
-  const { enabled: statisticsEnabled, setEnabled: setStatisticsEnabled } = useStatsStore();
+  const {
+    enabled: statisticsEnabled,
+    trackSessionTime,
+    trackPageTime,
+    trackContentEvents,
+    setEnabled: setStatisticsEnabled,
+    setTrackSessionTime,
+    setTrackPageTime,
+    setTrackFolderTime,
+    setTrackContentEvents,
+  } = useStatsStore();
 
   const avatarInputRef = useRef<HTMLInputElement>(null);
   const [displayName, setDisplayName] = useState(session?.user?.name ?? '');
@@ -238,7 +248,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
     setProfileSaving(false);
   };
 
-  const handleChangePassword = async (e: React.FormEvent) => {
+  const handleChangePassword = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setPasswordError(null);
     setPasswordSuccess(false);
@@ -284,7 +294,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
         className={cn(
           'flex flex-col gap-0 overflow-hidden p-0',
           'h-dvh max-h-none w-[calc(100vw-1rem)] max-w-full',
-          'sm:h-[85vh] sm:max-h-[720px] sm:w-full sm:max-w-2xl',
+          'sm:h-[85vh] sm:max-h-180 sm:w-full sm:max-w-2xl',
         )}
       >
         <DialogHeader className="border-border shrink-0 border-b px-4 py-3 pr-12 sm:px-6 sm:py-4">
@@ -602,7 +612,10 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                       checked={statisticsEnabled}
                       onChange={(v) => {
                         setStatisticsEnabled(v);
-                        void saveUserPreferences({ statisticsEnabled: v });
+                        void saveUserPreferencesWithOptions(
+                          { statisticsEnabled: v },
+                          { purgeDisabledStats: true },
+                        );
                       }}
                       label={t('settings.statisticsEnabled')}
                     />
@@ -613,8 +626,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     description={t('settings.trackSessionTimeDescription')}
                   >
                     <Switch
-                      checked={statisticsEnabled}
-                      onChange={(v) => void saveUserPreferences({ trackSessionTime: v })}
+                      checked={trackSessionTime}
+                      disabled={!statisticsEnabled}
+                      onChange={(v) => {
+                        setTrackSessionTime(v);
+                        void saveUserPreferencesWithOptions(
+                          { trackSessionTime: v },
+                          { purgeDisabledStats: true },
+                        );
+                      }}
                       label={t('settings.trackSessionTime')}
                     />
                   </SettingRow>
@@ -624,8 +644,16 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     description={t('settings.trackPageTimeDescription')}
                   >
                     <Switch
-                      checked={statisticsEnabled}
-                      onChange={(v) => void saveUserPreferences({ trackPageTime: v })}
+                      checked={trackPageTime}
+                      disabled={!statisticsEnabled}
+                      onChange={(v) => {
+                        setTrackPageTime(v);
+                        setTrackFolderTime(v);
+                        void saveUserPreferencesWithOptions(
+                          { trackPageTime: v, trackFolderTime: v },
+                          { purgeDisabledStats: true },
+                        );
+                      }}
                       label={t('settings.trackPageTime')}
                     />
                   </SettingRow>
@@ -635,8 +663,15 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                     description={t('settings.trackContentEventsDescription')}
                   >
                     <Switch
-                      checked={statisticsEnabled}
-                      onChange={(v) => void saveUserPreferences({ trackContentEvents: v })}
+                      checked={trackContentEvents}
+                      disabled={!statisticsEnabled}
+                      onChange={(v) => {
+                        setTrackContentEvents(v);
+                        void saveUserPreferencesWithOptions(
+                          { trackContentEvents: v },
+                          { purgeDisabledStats: true },
+                        );
+                      }}
                       label={t('settings.trackContentEvents')}
                     />
                   </SettingRow>

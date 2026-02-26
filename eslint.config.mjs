@@ -28,12 +28,11 @@
  * CAN auto-fix (removes entire import lines), making `eslint --fix` useful for
  * cleaning up after refactors.
  */
-
-import storybook from 'eslint-plugin-storybook';
 import nextVitals from 'eslint-config-next/core-web-vitals';
 import nextTs from 'eslint-config-next/typescript';
 import prettierConfig from 'eslint-config-prettier';
 import sonarjs from 'eslint-plugin-sonarjs';
+import storybook from 'eslint-plugin-storybook';
 import unusedImports from 'eslint-plugin-unused-imports';
 import { defineConfig, globalIgnores } from 'eslint/config';
 
@@ -115,6 +114,9 @@ const eslintConfig = defineConfig([
     '.next/**',
     'out/**',
     'build/**',
+    '**/bin/**',
+    '**/obj/**',
+    '**/.playwright/**',
     'next-env.d.ts',
     'prisma/migrations/**',
     'coverage/**',

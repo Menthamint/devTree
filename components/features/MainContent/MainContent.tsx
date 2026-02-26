@@ -124,11 +124,12 @@ export function MainContent({
   // Primary: derive directly from the stored JSON so tags are visible before
   // the Tiptap instance fires its first 'update' event.
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- calling setState in useEffect is valid React
     if (!page?.content) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset page tag list when content is absent
       setPageInlineTags([]);
       return;
     }
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync tag list from persisted page content
     setPageInlineTags(extractInlineTagsFromContent(page.content as Record<string, unknown>));
   }, [page?.content, page?.id]);
 
@@ -147,12 +148,12 @@ export function MainContent({
 
   // ── Reset filter when page changes ───────────────────────────────────────
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- calling setState in useEffect is valid React
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset active tag filter on page switch
     setActiveFilterTags([]);
   }, [page?.id]);
 
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- calling setState in useEffect is valid React
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- collapse bookmarks on page switch
     setBookmarksOpen(false);
   }, [page?.id]);
 

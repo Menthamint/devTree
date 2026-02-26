@@ -86,6 +86,16 @@ type StatsState = {
   enabled: boolean;
   setEnabled: (enabled: boolean) => void;
 
+  /** Per-metric tracking toggles (default true when not configured). */
+  trackSessionTime: boolean;
+  trackPageTime: boolean;
+  trackFolderTime: boolean;
+  trackContentEvents: boolean;
+  setTrackSessionTime: (enabled: boolean) => void;
+  setTrackPageTime: (enabled: boolean) => void;
+  setTrackFolderTime: (enabled: boolean) => void;
+  setTrackContentEvents: (enabled: boolean) => void;
+
   /** Pending events not yet flushed to the server. */
   queue: StatEvent[];
 
@@ -100,11 +110,43 @@ type StatsState = {
 
 export const useStatsStore = create<StatsState>()((set, get) => ({
   enabled: true,
-  setEnabled: (enabled) => set({ enabled }),
+  setEnabled: (enabled) => set((state) => ({ enabled, queue: enabled ? state.queue : [] })),
+  trackSessionTime: true,
+  trackPageTime: true,
+  trackFolderTime: true,
+  trackContentEvents: true,
+  setTrackSessionTime: (enabled) => set({ trackSessionTime: enabled }),
+  setTrackPageTime: (enabled) => set({ trackPageTime: enabled }),
+  setTrackFolderTime: (enabled) => set({ trackFolderTime: enabled }),
+  setTrackContentEvents: (enabled) => set({ trackContentEvents: enabled }),
   queue: [],
 
   enqueue: (event) => {
-    if (!get().enabled) return;
+    const { enabled, trackSessionTime, trackPageTime, trackFolderTime, trackContentEvents } = get();
+    if (!enabled) return;
+
+    if ((event.kind === 'SESSION_START' || event.kind === 'SESSION_END') && !trackSessionTime) {
+      return;
+    }
+
+    if (
+      (event.kind === 'PAGE_VISIT_START' || event.kind === 'PAGE_VISIT_END') &&
+      !(trackPageTime || trackFolderTime)
+    ) {
+      return;
+    }
+
+    if (
+      (event.kind === 'WRITING_SESSION_START' || event.kind === 'WRITING_SESSION_END') &&
+      !trackPageTime
+    ) {
+      return;
+    }
+
+    if (event.kind === 'CONTENT_EVENT' && !trackContentEvents) {
+      return;
+    }
+
     set((s) => ({ queue: [...s.queue, event] }));
   },
 

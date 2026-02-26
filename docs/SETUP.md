@@ -66,11 +66,14 @@ Or copy from `.env.example` if you prefer a single template. **Do not commit** `
 
 ### Required for auth and DB
 
-| Variable | Example | Description |
-|----------|---------|-------------|
-| `DATABASE_URL` | `postgresql://devtree:devtree@localhost:5432/devtree` | PostgreSQL connection string. |
-| `NEXTAUTH_URL` | `http://localhost:3000` | Base URL of the app. |
-| `AUTH_SECRET` | *(generate below)* | Secret for JWT signing; required in production. |
+| Variable             | Example                                               | Description                                                               |
+| -------------------- | ----------------------------------------------------- | ------------------------------------------------------------------------- |
+| `DATABASE_URL`       | `postgresql://devtree:devtree@localhost:5432/devtree` | PostgreSQL connection string.                                             |
+| `NEXTAUTH_URL`       | `http://localhost:3000`                               | Base URL of the app.                                                      |
+| `AUTH_SECRET`        | _(generate below)_                                    | Secret for JWT signing; required in production.                           |
+| `GMAIL_USER`         | `your-account@gmail.com`                              | Gmail account used to send password reset emails.                         |
+| `GMAIL_APP_PASSWORD` | `xxxx xxxx xxxx xxxx`                                 | Gmail App Password for Nodemailer (16 chars, no spaces when used in env). |
+| `EMAIL_FROM`         | `DevTree <your-account@gmail.com>`                    | Optional sender identity for password reset emails.                       |
 
 Generate a secret:
 
@@ -106,6 +109,16 @@ Log in at `/login` with that email and password. Password must meet the app’s 
 - **Google:** [Google Cloud Console](https://console.cloud.google.com/apis/credentials) → Create OAuth 2.0 Client ID (Web). Redirect URI: `http://localhost:3000/api/auth/callback/google`. Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`.
 - **GitHub:** [GitHub Developer Settings](https://github.com/settings/developers) → New OAuth App. Callback URL: `http://localhost:3000/api/auth/callback/github`. Set `GITHUB_CLIENT_ID` and `GITHUB_CLIENT_SECRET`.
 
+### Optional: password reset email (Gmail)
+
+Password reset is available at `/forgot-password` and sends links through Nodemailer.
+
+1. Enable 2-step verification on the Gmail account.
+2. Generate an App Password in Google Account security settings.
+3. Put `GMAIL_USER` and `GMAIL_APP_PASSWORD` in `.env.development`.
+
+If these variables are not set, DevTree logs reset links to the server console in development for local testing.
+
 ---
 
 ## 5. Run the app
@@ -116,8 +129,8 @@ pnpm dev
 
 Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `/login` if not authenticated. Sign in with:
 
-- Default admin (if configured and seeded), or  
-- Email/password (after registering), or  
+- Default admin (if configured and seeded), or
+- Email/password (after registering), or
 - Google/GitHub (if configured).
 
 ---
@@ -146,6 +159,7 @@ Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `
 ### Turbopack build fails — "couldn't find next/package.json from ./app"
 
 Full error:
+
 ```
 Error: Next.js inferred your workspace root may not be correct.
 We couldn't find the Next.js package (next/package.json) from the project directory: .../app

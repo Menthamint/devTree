@@ -230,7 +230,7 @@ function blockToMarkdown(block: Block): string {
  */
 function htmlToMarkdown(html: string): string {
   // Phase 1: structured HTML → Markdown equivalents
-  let partial = html
+  const partial = html
     // Block-level elements — order matters: headings before paragraphs
     .replaceAll(/<h1[^>]*>([\s\S]*?)<\/h1>/gi, '# $1')
     .replaceAll(/<h2[^>]*>([\s\S]*?)<\/h2>/gi, '## $1')
@@ -255,10 +255,12 @@ function htmlToMarkdown(html: string): string {
   // Phase 2 & 3: use DOMParser to safely strip remaining tags and decode HTML entities.
   // DOMParser handles both in one pass without regex, avoiding ReDoS risk entirely.
   const doc = new DOMParser().parseFromString(partial, 'text/html');
-  return (doc.body.textContent ?? '')
-    // Normalise whitespace: collapse 3+ newlines → 2
-    .replaceAll(/\n{3,}/g, '\n\n')
-    .trim();
+  return (
+    (doc.body.textContent ?? '')
+      // Normalise whitespace: collapse 3+ newlines → 2
+      .replaceAll(/\n{3,}/g, '\n\n')
+      .trim()
+  );
 }
 
 /**

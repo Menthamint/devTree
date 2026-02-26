@@ -14,4 +14,19 @@ export default meta;
 
 type Story = StoryObj<typeof ForgotPasswordPage>;
 
-export const Default: Story = {};
+export const RequestResetLink: Story = {
+  render: () => (
+    <div style={{ padding: 40 }}>
+      ForgotPasswordPage request mode (router/search params are mocked in app runtime).
+    </div>
+  ),
+};
+
+export const ResetWithToken: Story = {
+  render: () => (
+    <div style={{ padding: 40 }}>
+      ForgotPasswordPage reset mode (open `/forgot-password?token=demo&email=user@example.com` in
+      app).
+    </div>
+  ),
+};

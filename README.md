@@ -8,52 +8,52 @@ A **personal knowledge base** built as a learning project to explore modern full
 
 ## Features
 
-| Feature | Description |
-|---------|-------------|
-| 📝 **Block editor** | 10 block types: Text (rich text), Code (Monaco), Table, Checklist, Link, Image, Audio, Diagram, Video, Whiteboard |
-| 🗂️ **File explorer** | Sidebar tree with folders, drag-and-drop reordering, rename, delete, duplicate-name validation |
-| 🔗 **Deep links** | Open a page directly by URL (`/pages/[pageId]`) and share links to specific notes |
-| ⚡ **Transition skeletons** | Immediately hides previous notebook content on page switch and shows loading skeletons |
-| ↩️ **Page restore** | Returning to Notebook from another section reopens your last viewed notebook page |
-| 🧭 **Breadcrumbs** | Clickable breadcrumb path in header for fast folder/page navigation |
-| 🎨 **Themes** | Light / Dark / System via `next-themes` |
-| 🌍 **Internationalisation** | English and Ukrainian; persisted in cookie and `localStorage` (correct language on refresh) |
-| 📱 **Responsive** | Mobile-first layout with a slide-in sidebar drawer |
-| 🔍 **Search** | Filter pages by title or content (Cmd+K) |
-| 📊 **Page stats** | Word count, estimated reading time, block count |
-| ⬇️ **Export** | Download any page as a Markdown `.md` file |
-| ⌨️ **Keyboard shortcuts** | `Cmd+S` save · `Cmd+K` search |
-| 🧪 **Testing** | Vitest unit tests · Storybook stories · C# .NET + Playwright E2E |
-| 🐳 **Docker** | Full-stack Docker Compose setup with PostgreSQL |
+| Feature                     | Description                                                                                                       |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| 📝 **Block editor**         | 10 block types: Text (rich text), Code (Monaco), Table, Checklist, Link, Image, Audio, Diagram, Video, Whiteboard |
+| 🗂️ **File explorer**        | Sidebar tree with folders, drag-and-drop reordering, rename, delete, duplicate-name validation                    |
+| 🔗 **Deep links**           | Open a page directly by URL (`/pages/[pageId]`) and share links to specific notes                                 |
+| ⚡ **Transition skeletons** | Immediately hides previous notebook content on page switch and shows loading skeletons                            |
+| ↩️ **Page restore**         | Returning to Notebook from another section reopens your last viewed notebook page                                 |
+| 🧭 **Breadcrumbs**          | Clickable breadcrumb path in header for fast folder/page navigation                                               |
+| 🎨 **Themes**               | Light / Dark / System via `next-themes`                                                                           |
+| 🌍 **Internationalisation** | English and Ukrainian; persisted in cookie and `localStorage` (correct language on refresh)                       |
+| 📱 **Responsive**           | Mobile-first layout with a slide-in sidebar drawer                                                                |
+| 🔍 **Search**               | Filter pages by title or content (Cmd+K)                                                                          |
+| 📊 **Page stats**           | Word count, estimated reading time, block count                                                                   |
+| ⬇️ **Export**               | Download any page as a Markdown `.md` file                                                                        |
+| ⌨️ **Keyboard shortcuts**   | `Cmd+S` save · `Cmd+K` search                                                                                     |
+| 🧪 **Testing**              | Vitest unit tests · Storybook stories · C# .NET + Playwright E2E                                                  |
+| 🐳 **Docker**               | Full-stack Docker Compose setup with PostgreSQL                                                                   |
 
 ---
 
 ## Tech Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| Framework | [Next.js 16](https://nextjs.org) (App Router) | SSR, file routing, standalone Docker output |
-| UI library | [React 19](https://react.dev) | Component model, hooks, concurrent features |
-| Language | [TypeScript 5](https://typescriptlang.org) | Static types, better refactoring, fewer runtime bugs |
-| Styling | [Tailwind CSS 4](https://tailwindcss.com) | Utility-first, no CSS files, dark mode via class |
-| Components | [Radix UI](https://radix-ui.com) | Headless accessible primitives (dialogs, menus) |
-| Icons | [Lucide React](https://lucide.dev) | Consistent SVG icon set |
-| Rich text | [Tiptap 3](https://tiptap.dev) | Headless ProseMirror editor, extensible |
-| Code editor | [Monaco Editor](https://microsoft.github.io/monaco-editor/) | VS Code engine, syntax highlighting for 40+ languages |
-| Diagrams / Canvas | [Excalidraw 0.18](https://excalidraw.com) | Infinite canvas drawing with native Mermaid insert |
-| Charts | [Recharts 3](https://recharts.org) | Composable charts for the Statistics section |
-| Activity calendar | [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar) | GitHub-style heatmap for daily activity |
-| Drag & drop | Native HTML5 drag API | Tree-view reordering without additional library |
-| Auth | [NextAuth v5](https://authjs.dev) | Google + GitHub OAuth, JWT sessions |
-| Database | [PostgreSQL](https://postgresql.org) + [Prisma 6](https://prisma.io) | Type-safe ORM, migrations |
-| Unit tests | [Vitest 4](https://vitest.dev) + [Testing Library](https://testing-library.com) | Fast, Jest-compatible, ESM native |
-| Component dev | [Storybook 10](https://storybook.js.org) | Isolated component development and visual testing |
-| E2E tests | [C# .NET 9 + Playwright](https://playwright.dev) | Cross-browser E2E with Page Object Model |
-| Package manager | [pnpm](https://pnpm.io) | Fast, disk-efficient, strict dependency resolution |
-| Linting | [ESLint 9](https://eslint.org) (flat config) + SonarJS + jsx-a11y + storybook | Catch bugs, enforce patterns, accessibility |
-| Dead-code detection | [knip](https://knip.dev) | Find unused files, exports, and dependencies |
-| Formatting | [Prettier 3](https://prettier.io) + import-sort + tailwindcss | Consistent style, auto-sorted imports |
-| State management | [Zustand](https://zustand-demo.pmnd.rs) | Minimal global state with `localStorage` persistence |
+| Layer               | Technology                                                                       | Why                                                   |
+| ------------------- | -------------------------------------------------------------------------------- | ----------------------------------------------------- |
+| Framework           | [Next.js 16](https://nextjs.org) (App Router)                                    | SSR, file routing, standalone Docker output           |
+| UI library          | [React 19](https://react.dev)                                                    | Component model, hooks, concurrent features           |
+| Language            | [TypeScript 5](https://typescriptlang.org)                                       | Static types, better refactoring, fewer runtime bugs  |
+| Styling             | [Tailwind CSS 4](https://tailwindcss.com)                                        | Utility-first, no CSS files, dark mode via class      |
+| Components          | [Radix UI](https://radix-ui.com)                                                 | Headless accessible primitives (dialogs, menus)       |
+| Icons               | [Lucide React](https://lucide.dev)                                               | Consistent SVG icon set                               |
+| Rich text           | [Tiptap 3](https://tiptap.dev)                                                   | Headless ProseMirror editor, extensible               |
+| Code editor         | [Monaco Editor](https://microsoft.github.io/monaco-editor/)                      | VS Code engine, syntax highlighting for 40+ languages |
+| Diagrams / Canvas   | [Excalidraw 0.18](https://excalidraw.com)                                        | Infinite canvas drawing with native Mermaid insert    |
+| Charts              | [Recharts 3](https://recharts.org)                                               | Composable charts for the Statistics section          |
+| Activity calendar   | [react-activity-calendar](https://github.com/grubersjoe/react-activity-calendar) | GitHub-style heatmap for daily activity               |
+| Drag & drop         | Native HTML5 drag API                                                            | Tree-view reordering without additional library       |
+| Auth                | [NextAuth v5](https://authjs.dev)                                                | Google + GitHub OAuth, JWT sessions                   |
+| Database            | [PostgreSQL](https://postgresql.org) + [Prisma 6](https://prisma.io)             | Type-safe ORM, migrations                             |
+| Unit tests          | [Vitest 4](https://vitest.dev) + [Testing Library](https://testing-library.com)  | Fast, Jest-compatible, ESM native                     |
+| Component dev       | [Storybook 10](https://storybook.js.org)                                         | Isolated component development and visual testing     |
+| E2E tests           | [C# .NET 9 + Playwright](https://playwright.dev)                                 | Cross-browser E2E with Page Object Model              |
+| Package manager     | [pnpm](https://pnpm.io)                                                          | Fast, disk-efficient, strict dependency resolution    |
+| Linting             | [ESLint 9](https://eslint.org) (flat config) + SonarJS + jsx-a11y + storybook    | Catch bugs, enforce patterns, accessibility           |
+| Dead-code detection | [knip](https://knip.dev)                                                         | Find unused files, exports, and dependencies          |
+| Formatting          | [Prettier 3](https://prettier.io) + import-sort + tailwindcss                    | Consistent style, auto-sorted imports                 |
+| State management    | [Zustand](https://zustand-demo.pmnd.rs)                                          | Minimal global state with `localStorage` persistence  |
 
 ---
 
@@ -131,6 +131,7 @@ pnpm dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `/login`. Sign in with:
+
 - **Default admin** — Set `ADMIN_EMAIL` and `ADMIN_PASSWORD` in `.env.development`, run `pnpm db:seed`, then log in with those credentials (default: `admin@localhost`).
 - **Email & password** — Create an account at `/register`
 - **Google** or **GitHub** — OAuth (configure credentials in env)
@@ -139,15 +140,18 @@ Open [http://localhost:3000](http://localhost:3000). You’ll be redirected to `
 
 ## Environment Variables
 
-| Variable | Description |
-|----------|-------------|
-| `DATABASE_URL` | PostgreSQL connection string (local: `postgresql://devtree:devtree@localhost:5432/devtree`; Vercel: Neon connection string) |
-| `NEXTAUTH_URL` | App URL (local: `http://localhost:3000`; prod: `https://your-app.vercel.app`) |
-| `AUTH_SECRET` | Secret for JWT signing (generate with `openssl rand -base64 32`) |
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials |
-| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth credentials |
-| `ADMIN_EMAIL` | Email for the default admin account (default: `admin@localhost`). Created/updated when you run `pnpm db:seed` and `ADMIN_PASSWORD` is set. |
-| `ADMIN_PASSWORD` | Password for the default admin account. Set this and run `pnpm db:seed` to create or update the admin user. |
+| Variable                                    | Description                                                                                                                                |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DATABASE_URL`                              | PostgreSQL connection string (local: `postgresql://devtree:devtree@localhost:5432/devtree`; Vercel: Neon connection string)                |
+| `NEXTAUTH_URL`                              | App URL (local: `http://localhost:3000`; prod: `https://your-app.vercel.app`)                                                              |
+| `AUTH_SECRET`                               | Secret for JWT signing (generate with `openssl rand -base64 32`)                                                                           |
+| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google OAuth credentials                                                                                                                   |
+| `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` | GitHub OAuth credentials                                                                                                                   |
+| `GMAIL_USER`                                | Gmail account for password reset email sending (Nodemailer)                                                                                |
+| `GMAIL_APP_PASSWORD`                        | Gmail App Password for password reset emails                                                                                               |
+| `EMAIL_FROM`                                | Optional email sender for password reset messages                                                                                          |
+| `ADMIN_EMAIL`                               | Email for the default admin account (default: `admin@localhost`). Created/updated when you run `pnpm db:seed` and `ADMIN_PASSWORD` is set. |
+| `ADMIN_PASSWORD`                            | Password for the default admin account. Set this and run `pnpm db:seed` to create or update the admin user.                                |
 
 `.env.development` is gitignored. Use `.env.development.example` as a template.
 
@@ -353,6 +357,7 @@ Adding a new block type involves extending the Tiptap editor with a new node ext
 4. **Register the slash command** — add an entry in `SlashCommand.tsx`
 
 Don't forget to:
+
 - Write a unit test alongside the extension file
 - Write a Storybook story in `components/features/editor/__stories__/`
 - Handle the type in `blockToMarkdown()` in `lib/pageUtils.ts`
@@ -361,14 +366,14 @@ Don't forget to:
 
 ## Documentation
 
-| Doc | Description |
-|-----|-------------|
-| [**docs/README.md**](docs/README.md) | Documentation index and quick links |
+| Doc                                              | Description                                                                                     |
+| ------------------------------------------------ | ----------------------------------------------------------------------------------------------- |
+| [**docs/README.md**](docs/README.md)             | Documentation index and quick links                                                             |
 | [**docs/ARCHITECTURE.md**](docs/ARCHITECTURE.md) | System design, component hierarchy, data model, state flow, DnD, tree algorithms, i18n, testing |
-| [**docs/TECH-STACK.md**](docs/TECH-STACK.md) | Every library and technology in detail (versions, why, where used) |
-| [**docs/AUTH.md**](docs/AUTH.md) | Authentication: NextAuth, credentials, OAuth, session, middleware, user APIs |
-| [**docs/SETUP.md**](docs/SETUP.md) | Environment variables, database, seeding, troubleshooting |
-| [**docs/SECURITY.md**](docs/SECURITY.md) | Security (auth, passwords, uploads, XSS), performance, locale persistence |
+| [**docs/TECH-STACK.md**](docs/TECH-STACK.md)     | Every library and technology in detail (versions, why, where used)                              |
+| [**docs/AUTH.md**](docs/AUTH.md)                 | Authentication: NextAuth, credentials, OAuth, session, middleware, user APIs                    |
+| [**docs/SETUP.md**](docs/SETUP.md)               | Environment variables, database, seeding, troubleshooting                                       |
+| [**docs/SECURITY.md**](docs/SECURITY.md)         | Security (auth, passwords, uploads, XSS), performance, locale persistence                       |
 
 Mermaid diagrams in the docs render on GitHub and in editors with a Mermaid extension. For dependency visualization you can use `npx madge --extensions ts,tsx --image graph.svg app components lib` (see docs/README.md).
 
