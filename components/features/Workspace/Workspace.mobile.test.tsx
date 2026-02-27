@@ -142,18 +142,16 @@ describe('Workspace mobile behavior', () => {
     const user = userEvent.setup();
     const { container } = render(<Workspace initialRoutePageId="p1" />);
 
-    const sidebar = container.querySelector('aside');
-    expect(sidebar).toBeInTheDocument();
-    expect(sidebar).toHaveClass('-translate-x-full');
+    expect(container.querySelector('aside')).not.toBeInTheDocument();
 
     await user.click(screen.getByTestId('toggle-mobile-sidebar'));
 
-    await waitFor(() => expect(sidebar).toHaveClass('translate-x-0'));
+    await waitFor(() => expect(container.querySelector('aside')).toBeInTheDocument());
     expect(document.body.style.overflow).toBe('hidden');
 
     fireEvent.keyDown(document, { key: 'Escape' });
 
-    await waitFor(() => expect(sidebar).toHaveClass('-translate-x-full'));
+    await waitFor(() => expect(container.querySelector('aside')).not.toBeInTheDocument());
     expect(document.body.style.overflow).toBe('');
   });
 });

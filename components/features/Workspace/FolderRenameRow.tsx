@@ -160,25 +160,7 @@ export function FolderRenameRow({
 
       {nameContent}
 
-      {/**
-       * Action buttons (create file, create folder, delete).
-       *
-       * `ml-auto` pushes the actions to the far right of the row.
-       * `hidden group-hover:flex` shows them only when the tree row
-       * (`group` ancestor) is hovered — no absolute positioning needed,
-       * which means the actions stay in normal flow and never clip outside
-       * the row boundary.
-       *
-       * WHY `pl-1`? Gives a small visual gap between the name and the icons
-       * so they don't feel cramped when the name is at max length.
-       */}
-      {item.actions && (
-        // `flex opacity-0` keeps the action icons in layout flow so showing
-        // them on hover doesn't shift the folder name left.
-        <span className="ml-auto flex shrink-0 pl-1 opacity-0 transition-opacity group-hover:opacity-100">
-          {item.actions}
-        </span>
-      )}
+      <span className="ml-auto shrink-0" aria-hidden />
     </div>
   );
 }

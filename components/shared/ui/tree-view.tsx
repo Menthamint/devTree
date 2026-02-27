@@ -213,8 +213,11 @@ export const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
          * dragging. Uses the `[.is-dragging_&]:` ancestor-state selector so
          * the zone only activates when a drag is in progress.
          */}
-        <div
+        <button
+          type="button"
           data-drop-target="root"
+          tabIndex={draggedItem ? 0 : -1}
+          aria-label="Drop here to move to root"
           className="text-muted-foreground in-[.is-dragging]:border-primary/50 in-[.is-dragging]:bg-primary/10 in-[.is-dragging]:text-foreground mt-1 min-h-10 w-full rounded-md border-2 border-dashed border-transparent bg-transparent px-2 py-2 text-center text-xs transition-colors"
           onDragOver={(e) => {
             e.preventDefault();
@@ -226,9 +229,16 @@ export const TreeView = React.forwardRef<HTMLDivElement, TreeProps>(
             e.stopPropagation();
             handleDrop({ id: '__root_drop__', name: 'Move to root' });
           }}
+          onKeyDown={(e) => {
+            if (!draggedItem) return;
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleDrop({ id: '__root_drop__', name: 'Move to root' });
+            }
+          }}
         >
           {draggedItem ? rootDropLabel : null}
-        </div>
+        </button>
       </div>
     );
   },
@@ -380,7 +390,7 @@ const TreeNode = ({
   return (
     <AccordionPrimitive.Root type="multiple" value={value} onValueChange={setValue}>
       <AccordionPrimitive.Item value={item.id} data-radix-accordion-item="">
-        <AccordionPrimitive.Header>
+        <AccordionPrimitive.Header className="group/row relative">
           <AccordionPrimitive.Trigger
             className={cn(
               ROW_BASE,
@@ -430,17 +440,14 @@ const TreeNode = ({
                   default={defaultNodeIcon}
                 />
                 <span className="flex-1 truncate text-sm">{item.name}</span>
-                {item.actions && (
-                  // `flex opacity-0 group-hover/row:opacity-100` keeps the actions in
-                  // layout flow at all times so showing them on hover doesn't push
-                  // the folder name left (no layout shift).
-                  <span className="ml-auto flex shrink-0 opacity-0 transition-opacity group-hover/row:opacity-100">
-                    {item.actions}
-                  </span>
-                )}
               </>
             )}
           </AccordionPrimitive.Trigger>
+          {item.actions && (
+            <span className="pointer-events-auto absolute top-1/2 right-2 z-10 flex -translate-y-1/2 shrink-0 opacity-0 transition-opacity group-hover/row:opacity-100">
+              {item.actions}
+            </span>
+          )}
         </AccordionPrimitive.Header>
 
         <AccordionPrimitive.Content className="overflow-hidden text-sm data-[state=closed]:animate-accordion-up data-[state=open]:animate-accordion-down motion-reduce:animate-none">
@@ -453,7 +460,7 @@ const TreeNode = ({
            */}
           <div className="border-border/40 ml-3 border-l pb-1 pl-1">
             <TreeItem
-              data={item.children ? item.children : item}
+              data={item.children ?? item}
               selectedItemId={selectedItemId}
               handleSelectChange={handleSelectChange}
               expandedItemIds={expandedItemIds}
@@ -562,6 +569,14 @@ export const TreeLeaf = React.forwardRef<
             item.onClick?.();
           }
         }}
+        onKeyDown={(e) => {
+          if (item.disabled) return;
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            handleSelectChange(item);
+            item.onClick?.();
+          }
+        }}
         draggable={!!item.draggable && !item.disabled}
         onDragStart={onDragStart}
         onDragEnd={handleDragEnd}
@@ -591,12 +606,12 @@ export const TreeLeaf = React.forwardRef<
           <>
             <TreeIcon item={item} isSelected={isSelected} default={defaultLeafIcon} />
             <span className="flex-1 truncate text-sm">{item.name}</span>
-            {item.actions && (
-              <span className="ml-auto flex shrink-0 opacity-0 transition-opacity group-hover/row:opacity-100">
-                {item.actions}
-              </span>
-            )}
           </>
+        )}
+        {item.actions && (
+          <span className="ml-auto flex shrink-0 opacity-0 transition-opacity group-hover/row:opacity-100">
+            {item.actions}
+          </span>
         )}
       </div>
     );

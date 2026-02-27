@@ -8,7 +8,6 @@ using System.Text.RegularExpressions;
 public class SidebarPage(IPage page)
 {
     private readonly IPage _page = page;
-    private static readonly Regex UntitledPattern = new("^Untitled(?:\\s+\\d+)?$", RegexOptions.Compiled);
 
     // ── Selectors ──────────────────────────────────────────────────────────
 
@@ -19,21 +18,39 @@ public class SidebarPage(IPage page)
 
     // ── Actions ────────────────────────────────────────────────────────────
 
-    private async Task<HashSet<string>> GetUntitledTitlesAsync()
+    private async Task WaitForSidebarLoadAsync()
     {
-        var titles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        var matches = _page.Locator("aside").GetByText(UntitledPattern);
-        var count = await matches.CountAsync();
-        for (var index = 0; index < count; index++)
+        var sidebar = _page.Locator("aside");
+        try
         {
-            var text = (await matches.Nth(index).InnerTextAsync()).Trim();
-            if (!string.IsNullOrWhiteSpace(text))
-            {
-                titles.Add(text);
-            }
+            await sidebar.WaitForAsync(new() { Timeout = 15_000 });
         }
+        catch
+        {
+            await _page.WaitForTimeoutAsync(2_000);
+        }
+    }
 
-        return titles;
+    private async Task WaitForStablePageHeaderStateAsync()
+    {
+        var saveBtn = _page.GetByTestId("save-page-button");
+        var editPageBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Edit page", Exact = true });
+        var leaveBtn = _page.GetByTestId("unsaved-leave-without-saving");
+
+        for (var attempt = 0; attempt < 30; attempt++)
+        {
+            if (await leaveBtn.IsVisibleAsync())
+            {
+                await leaveBtn.ClickAsync();
+                await _page.WaitForTimeoutAsync(500);
+                continue;
+            }
+
+            if (await saveBtn.IsVisibleAsync() || await editPageBtn.IsVisibleAsync())
+                break;
+
+            await _page.WaitForTimeoutAsync(300);
+        }
     }
 
     /// <summary>Creates a new page and returns its title locator.</summary>
@@ -43,15 +60,7 @@ public class SidebarPage(IPage page)
         var urlBeforeCreate = _page.Url;
 
         // Wait for the sidebar to be fully loaded.
-        var sidebar = _page.Locator("aside");
-        try
-        {
-            await sidebar.WaitForAsync(new() { Timeout = 15_000 });
-        }
-        catch
-        {
-            await _page.WaitForTimeoutAsync(2000);
-        }
+        await WaitForSidebarLoadAsync();
 
         // Click the "New page" button with retries.
         var newPageBtn = NewPageBtn;
@@ -86,27 +95,8 @@ public class SidebarPage(IPage page)
         // will be unmounted. We detect stability by waiting for the Tiptap editor
         // container (.page-editor-content) to appear.
 
-        var saveBtn = _page.GetByTestId("save-page-button");
-        var editPageBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Edit page", Exact = true });
-        var leaveBtn = _page.GetByTestId("unsaved-leave-without-saving");
-
         // Phase 1: wait for any stable header button (edit mode or view mode)
-        for (var attempt = 0; attempt < 30; attempt++)
-        {
-            // Dismiss unsaved dialog if visible (handles dirty-state transitions)
-            if (await leaveBtn.IsVisibleAsync())
-            {
-                await leaveBtn.ClickAsync();
-                await _page.WaitForTimeoutAsync(500);
-                continue;
-            }
-
-            // Stable header button visible
-            if (await saveBtn.IsVisibleAsync() || await editPageBtn.IsVisibleAsync())
-                break;
-
-            await _page.WaitForTimeoutAsync(300);
-        }
+        await WaitForStablePageHeaderStateAsync();
 
         // Phase 2: wait for the Tiptap editor container to appear, which confirms the
         // page has fully loaded (temp ID → real DB ID transition completed).
@@ -315,20 +305,27 @@ public class SidebarPage(IPage page)
     }
 
     /// <summary>Collapses the sidebar.</summary>
-    public Task HideAsync() => HideBtn.ClickAsync();
+    public async Task HideAsync()
+    {
+        await HideBtn.ClickAsync();
+        await ShowBtn.WaitForAsync(new() { Timeout = 5_000 });
+    }
 
     /// <summary>Expands the sidebar from the collapsed strip.</summary>
-    public Task ShowAsync() => ShowBtn.ClickAsync();
+    public async Task ShowAsync()
+    {
+        await ShowBtn.ClickAsync();
+        await NewPageBtn.WaitForAsync(new() { Timeout = 5_000 });
+    }
 
     /// <summary>Returns true when the sidebar panel is visible.</summary>
     public async Task<bool> IsVisibleAsync() =>
-        await _page.Locator("aside").IsVisibleAsync();
+        await NewPageBtn.IsVisibleAsync();
 
     /// <summary>Waits for the sidebar to be visible.</summary>
     public async Task WaitForVisibleAsync()
     {
-        await _page.Locator("aside").WaitForAsync(new() { Timeout = 10_000 });
-        await _page.Locator("aside").IsVisibleAsync();
+        await NewPageBtn.WaitForAsync(new() { Timeout = 10_000 });
     }
 
     // ── Delete helpers ─────────────────────────────────────────────────────
@@ -340,19 +337,53 @@ public class SidebarPage(IPage page)
     /// </summary>
     public async Task DeleteLastPageAsync()
     {
-        var items = _page.Locator("aside [data-radix-accordion-item]");
-        var count = await items.CountAsync();
-        if (count == 0) throw new InvalidOperationException("No tree items found in sidebar.");
+        var pageRows = _page.Locator("aside [role='treeitem']");
+        var count = await pageRows.CountAsync();
+        if (count == 0) throw new InvalidOperationException("No page rows found in sidebar.");
 
-        var last = items.Nth(count - 1);
+        var last = pageRows.Nth(count - 1);
         await last.ScrollIntoViewIfNeededAsync();
         await last.HoverAsync();
 
-        // Pages have exactly 1 action (delete) so it renders inline, not in a dropdown.
-        // The button is <span role="button" aria-label="Delete"> — use ARIA role selector.
         var deleteBtn = last.GetByRole(AriaRole.Button, new() { Name = "Delete", Exact = true });
         await deleteBtn.WaitForAsync(new() { Timeout = 5_000 });
         await deleteBtn.ClickAsync();
+    }
+
+    /// <summary>
+    /// Hovers a page row by exact title and clicks its inline "Delete" action.
+    /// </summary>
+    public async Task DeletePageByTitleAsync(string title)
+    {
+        for (var attempt = 0; attempt < 5; attempt++)
+        {
+            try
+            {
+                var row = _page
+                    .Locator("aside [role='treeitem']")
+                    .Filter(new LocatorFilterOptions
+                    {
+                        Has = _page.GetByText(title, new() { Exact = true }),
+                    })
+                    .First;
+
+                await row.WaitForAsync(new() { Timeout = 10_000 });
+                await row.HoverAsync();
+
+                var deleteBtn = row.GetByRole(AriaRole.Button, new() { Name = "Delete", Exact = true });
+                await deleteBtn.WaitForAsync(new() { Timeout = 5_000 });
+                await deleteBtn.ClickAsync(new() { Force = true });
+                return;
+            }
+            catch (PlaywrightException ex) when (
+                ex.Message.Contains("not attached", StringComparison.OrdinalIgnoreCase) ||
+                ex.Message.Contains("not stable", StringComparison.OrdinalIgnoreCase))
+            {
+                await _page.WaitForTimeoutAsync(200);
+            }
+        }
+
+        throw new TimeoutException($"Could not click Delete action for page '{title}'.");
     }
 
     /// <summary>
@@ -361,19 +392,15 @@ public class SidebarPage(IPage page)
     /// </summary>
     public async Task DeleteFolderByNameAsync(string folderName)
     {
-        var folderItem = _page.Locator("aside").GetByText(folderName, new() { Exact = true }).First;
-        await folderItem.WaitForAsync(new() { Timeout = 10_000 });
-        await folderItem.ScrollIntoViewIfNeededAsync();
-        await folderItem.HoverAsync();
-
-        // Folders have 4 actions → overflow dropdown with "More actions" trigger.
-        var folderTrigger = _page.Locator("aside [data-radix-accordion-item] > h3 > button")
-            .Filter(new LocatorFilterOptions
-            {
-                Has = _page.GetByText(folderName, new() { Exact = true }),
-            })
+        var folderRow = _page
+            .Locator("aside [data-radix-accordion-item]")
+            .Filter(new LocatorFilterOptions { HasText = folderName })
             .First;
-        var moreBtn = folderTrigger.GetByRole(AriaRole.Button, new() { Name = "More actions", Exact = true });
+        await folderRow.WaitForAsync(new() { Timeout = 10_000 });
+        await folderRow.ScrollIntoViewIfNeededAsync();
+        await folderRow.HoverAsync();
+
+        var moreBtn = folderRow.GetByRole(AriaRole.Button, new() { Name = "More actions", Exact = true }).First;
         await moreBtn.WaitForAsync(new() { Timeout = 5_000 });
         await moreBtn.ClickAsync();
 

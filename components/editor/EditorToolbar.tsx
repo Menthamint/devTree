@@ -40,12 +40,12 @@ import {
   Undo2,
 } from 'lucide-react';
 
-import { VoiceDictationButton } from '@/components/MainContent/voice-dictation/VoiceDictationButton';
-import { VoiceDictationLanguageButton } from '@/components/MainContent/voice-dictation/VoiceDictationLanguageButton';
+import { VoiceDictationButton } from '@/components/features/MainContent/voice-dictation/VoiceDictationButton';
+import { VoiceDictationLanguageButton } from '@/components/features/MainContent/voice-dictation/VoiceDictationLanguageButton';
 import { type Locale, useI18n } from '@/lib/i18n';
 import { cn } from '@/lib/utils';
 
-import { BookmarksPanel } from './BookmarksPanel';
+import { BookmarksPanel } from '@/components/features/editor/BookmarksPanel';
 
 // ─── Colors ───────────────────────────────────────────────────────────────────
 
@@ -88,10 +88,8 @@ function DictationOverlay({ editor, text }: { editor: Editor; text: string }) {
     try {
       const { head } = editor.state.selection;
       const coords = editor.view.coordsAtPos(head);
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- update overlay coordinates from editor selection
       setPos({ top: coords.bottom + 6, left: coords.left });
     } catch {
-      // eslint-disable-next-line react-hooks/set-state-in-effect -- clear overlay when cursor coordinates cannot be resolved
       setPos(null);
     }
   }, [editor, text]);
@@ -147,6 +145,7 @@ type EditorToolbarProps = Readonly<{
   blockId?: string;
 }>;
 
+// eslint-disable-next-line sonarjs/cognitive-complexity -- toolbar intentionally centralizes many formatting actions and popup flows
 export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
   const { locale } = useI18n();
   const reducedMotion = useReducedMotion();

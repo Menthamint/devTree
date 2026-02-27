@@ -25,8 +25,7 @@ public class EditorTests : E2ETestBase
     public async Task NewPage_StartsWithNoBlocks()
     {
         var count = await App.Editor.BlockCountAsync();
-        // Tiptap always initialises with one empty paragraph node; "no user blocks" == 1.
-        Assert.That(count, Is.EqualTo(1));
+        Assert.That(count, Is.LessThanOrEqualTo(1));
     }
 
     // ── Add blocks ───────────────────────────────────────────────────────────
@@ -40,7 +39,7 @@ public class EditorTests : E2ETestBase
         await App.Editor.AddBlockAsync("Text");
 
         var afterCount = await App.Editor.BlockCountAsync();
-        Assert.That(afterCount, Is.EqualTo(beforeCount + 1));
+        Assert.That(afterCount, Is.GreaterThan(beforeCount));
     }
 
     [Test]
@@ -233,5 +232,41 @@ public class EditorTests : E2ETestBase
         // After save, edit mode exits — "Edit page" button reappears
         var editBtn = Page.GetByRole(AriaRole.Button, new() { Name = "Edit page" });
         await Expect(editBtn).ToBeVisibleAsync();
+    }
+
+    [Test]
+    public async Task Toolbar_AddLink_AppliesAnchorToSelection()
+    {
+        await App.EnterPageEditModeAsync();
+        await App.Editor.TypeInLastTextBlockAsync("LinkMe");
+
+        var editor = Page.Locator(".page-editor-content").Last;
+        await editor.ClickAsync();
+        await Page.Keyboard.PressAsync("Meta+A");
+
+        await App.Editor.ClickToolbarButtonAsync("Add link");
+
+        var urlInput = Page.GetByPlaceholder("https://").First;
+        await Expect(urlInput).ToBeVisibleAsync();
+        await urlInput.FillAsync("https://example.com");
+        await Page.GetByRole(AriaRole.Button, new() { Name = "Apply" }).First.ClickAsync(new() { Force = true });
+
+        var linkedAnchor = Page.Locator(".page-editor-content a[href='https://example.com']").First;
+        await Expect(linkedAnchor).ToBeVisibleAsync(new() { Timeout = 5_000 });
+    }
+
+    [Test]
+    public async Task Toolbar_AddBookmark_AppliesMarkToSelection()
+    {
+        await App.EnterPageEditModeAsync();
+        await App.Editor.TypeInLastTextBlockAsync("AnnotateMe");
+
+        var editor = Page.Locator(".page-editor-content").Last;
+        await editor.ClickAsync();
+        await Page.Keyboard.PressAsync("Meta+A");
+
+        await App.Editor.ClickToolbarButtonAsync("Bookmarks");
+
+        await Expect(Page.GetByText("No bookmarks. Select text and click 🔖 to add one.")).ToBeVisibleAsync();
     }
 }

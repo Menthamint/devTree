@@ -81,6 +81,7 @@ type MainContentProps = Readonly<{
   /** Called by PageEditor for every document change in edit mode. */
   onContentChange?: (json: JSONContent) => void;
 }>;
+// eslint-disable-next-line sonarjs/cognitive-complexity -- component intentionally orchestrates multiple UI states and handlers
 export function MainContent({
   page,
   isPageLoading = false,
@@ -173,6 +174,7 @@ export function MainContent({
 
   useEffect(() => {
     if (isEditMode) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- intentionally clear active filters when entering edit mode
       setActiveFilterTags([]);
     }
   }, [isEditMode]);

@@ -220,7 +220,7 @@ function processWordsForPunctuation(words: string[], language: 'en' | 'uk'): str
  * Check if current position is at the start of a sentence.
  */
 function isAtSentenceStart(index: number, result: string[]): boolean {
-  return index === 0 || result[result.length - 1]?.endsWith('.') === true;
+  return index === 0 || result.at(-1)?.endsWith('.') === true;
 }
 
 /**
@@ -313,10 +313,10 @@ function shouldAddCommaBeforeConjunction(
 }
 
 function addFinalPunctuation(word: string, result: string[], language: 'en' | 'uk'): string {
-  const firstWord = result[0]?.toLowerCase().replace(/[^a-zа-яіїєґ]/g, '') || '';
+  const firstWord = result[0]?.toLowerCase().replaceAll(/[^a-zа-яіїєґ]/g, '') || '';
   if (QUESTION_WORDS[language].includes(firstWord)) {
     return word + '?';
-  } else if (!word.match(/[.!?]$/)) {
+  } else if (/[.!?]$/.exec(word) === null) {
     return word + '.';
   }
   return word;
@@ -342,34 +342,34 @@ function shouldAddPeriodAtBreak(
 /**
  * Check if ML punctuation model is loaded (currently uses rule-based approach).
  */
-function isPunctuationModelLoaded(): boolean {
+export function isPunctuationModelLoaded(): boolean {
   return true; // Rule-based system is always "loaded"
 }
 
 /**
  * Check if ML punctuation model is loading (currently uses rule-based approach).
  */
-function isPunctuationModelLoading(): boolean {
+export function isPunctuationModelLoading(): boolean {
   return false;
 }
 
 /**
  * Get model loading error (currently none for rule-based approach).
  */
-function getPunctuationModelError(): Error | null {
+export function getPunctuationModelError(): Error | null {
   return null;
 }
 
 /**
  * Preload punctuation model (no-op for rule-based approach).
  */
-async function preloadPunctuationModel(): Promise<void> {
+export async function preloadPunctuationModel(): Promise<void> {
   // No-op: rule-based system doesn't need preloading
 }
 
 /**
  * Clear model cache (no-op for rule-based approach).
  */
-function clearPunctuationModelCache(): void {
+export function clearPunctuationModelCache(): void {
   // No-op: rule-based system has no cache
 }

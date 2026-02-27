@@ -54,6 +54,7 @@ type EditorBubbleMenuProps = Readonly<{
   editor: Editor;
 }>;
 
+// eslint-disable-next-line sonarjs/cognitive-complexity -- bubble menu coordinates multiple popups, selection state, and viewport events
 export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
   const linkInputRef = useRef<HTMLInputElement>(null);
   const commentInputRef = useRef<HTMLTextAreaElement>(null);
@@ -119,6 +120,7 @@ export function EditorBubbleMenu({ editor }: EditorBubbleMenuProps) {
   useEffect(() => {
     editor.on('selectionUpdate', updatePosition);
     editor.on('transaction', updatePosition);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- prime menu visibility/position on mount and editor swap
     updatePosition();
     return () => {
       editor.off('selectionUpdate', updatePosition);

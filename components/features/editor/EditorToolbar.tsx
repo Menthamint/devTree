@@ -145,6 +145,7 @@ type EditorToolbarProps = Readonly<{
   blockId?: string;
 }>;
 
+// eslint-disable-next-line sonarjs/cognitive-complexity -- toolbar intentionally centralizes many formatting actions and popup flows
 export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
   const { locale } = useI18n();
   const reducedMotion = useReducedMotion();

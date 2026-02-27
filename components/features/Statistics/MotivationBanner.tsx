@@ -130,7 +130,7 @@ function getTodayKey(): string {
 }
 
 function wasShownToday(): boolean {
-  if (typeof globalThis.window === 'undefined') return false;
+  if (globalThis.window === undefined) return false;
   try {
     if (sessionStorage.getItem(STORAGE_KEY_DAILY) === getTodayKey()) return true;
     if (localStorage.getItem(STORAGE_KEY_DAILY) === getTodayKey()) return true;
@@ -152,7 +152,7 @@ function markShownToday(): void {
 
 /** Returns the set of achievement IDs the user has permanently dismissed. */
 function getSeenAchievements(): Set<string> {
-  if (typeof globalThis.window === 'undefined') return new Set();
+  if (globalThis.window === undefined) return new Set();
   try {
     const raw = localStorage.getItem(STORAGE_KEY_ACHIEVEMENTS);
     if (raw) return new Set(JSON.parse(raw) as string[]);
@@ -265,7 +265,6 @@ export function MotivationBanner({ data, forceShow = false }: Readonly<Props>) {
     if (!data) return null;
     const seen = forceShow ? new Set<string>() : getSeenAchievements();
     return ACHIEVEMENT_BANNERS.find((b) => b.predicate(data) && !seen.has(b.id)) ?? null;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, forceShow]);
 
   // Daily messages are shown once per calendar day.
@@ -309,7 +308,6 @@ export function MotivationBanner({ data, forceShow = false }: Readonly<Props>) {
 
   return (
     <div
-      role="status"
       aria-live="polite"
       className={[
         'relative overflow-hidden rounded-xl border shadow-sm transition-all duration-300',

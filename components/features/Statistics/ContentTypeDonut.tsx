@@ -2,7 +2,7 @@
 
 import React from 'react';
 
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
+import { Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts';
 
 import {
   Card,
@@ -67,8 +67,8 @@ function CustomLegend({ payload }: any) {
   return (
     <div className="mt-3 grid grid-cols-2 gap-x-4 gap-y-1.5 px-2">
       {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
-      {payload.map((entry: any, i: number) => (
-        <div key={i} className="flex min-w-0 items-center gap-2">
+      {payload.map((entry: any) => (
+        <div key={`${entry.value as string}-${entry.color as string}`} className="flex min-w-0 items-center gap-2">
           <span
             className="h-2.5 w-2.5 shrink-0 rounded-full"
             style={{ background: entry.color as string }}
@@ -83,12 +83,13 @@ function CustomLegend({ payload }: any) {
   );
 }
 
-export function ContentTypeDonut({ data, loading }: Props) {
+export function ContentTypeDonut({ data, loading }: Readonly<Props>) {
   const chartData = data
     ? Object.entries(data.blockTypeCounts)
-        .map(([type, count]) => ({
+        .map(([type, count], index) => ({
           name: BLOCK_TYPE_LABELS[type] ?? type,
           value: count,
+          fill: PALETTE[index % PALETTE.length],
         }))
         .filter((d) => d.value > 0)
         .sort((a, b) => b.value - a.value)
@@ -124,11 +125,7 @@ export function ContentTypeDonut({ data, loading }: Props) {
                   paddingAngle={6}
                   cornerRadius={6}
                   strokeWidth={0}
-                >
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                  ))}
-                </Pie>
+                />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend content={<CustomLegend />} verticalAlign="bottom" />
               </PieChart>

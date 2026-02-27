@@ -2,12 +2,11 @@ import { NextResponse } from 'next/server';
 
 import { createHash, randomBytes } from 'node:crypto';
 
+import { isValidEmailAddress } from '@/lib/auth/email';
 import { sendPasswordResetEmail } from '@/lib/auth/resetEmail';
 import { prisma } from '@/lib/prisma';
 
 const TOKEN_EXPIRY_MS = 60 * 60 * 1000;
-// eslint-disable-next-line sonarjs/slow-regex -- standard email validation regex, bounded by @ and domain separators
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 function hashToken(rawToken: string): string {
   return createHash('sha256').update(rawToken).digest('hex');
@@ -31,7 +30,7 @@ export async function POST(req: Request) {
   }
 
   const email = body.email?.trim().toLowerCase();
-  if (!email || !EMAIL_REGEX.test(email)) {
+  if (!email || !isValidEmailAddress(email)) {
     return NextResponse.json({ error: 'Please enter a valid email address' }, { status: 400 });
   }
 

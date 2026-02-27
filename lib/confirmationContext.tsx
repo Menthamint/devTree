@@ -40,6 +40,7 @@ let confirmationCounter = 0;
 const CONFIRM_PRIMARY_BTN = 'bg-primary hover:opacity-90';
 const CONFIRM_CANCEL_BTN =
   'rounded border border-border px-3 py-1 text-sm font-medium hover:bg-accent';
+const CONFIRM_DESTRUCTIVE_BTN = 'bg-red-600 hover:bg-red-700';
 
 export function ConfirmationProvider({ children }: Readonly<{ children: React.ReactNode }>) {
   const [activeConfirmation, setActiveConfirmation] = useState<PendingConfirmation | null>(null);
@@ -134,7 +135,7 @@ function ConfirmationDialog({
               <button
                 onClick={onConfirm}
                 className={`rounded px-3 py-1 text-sm font-medium text-white ${
-                  isDestructive ? 'bg-red-600 hover:bg-red-700' : CONFIRM_PRIMARY_BTN
+                  isDestructive ? CONFIRM_DESTRUCTIVE_BTN : CONFIRM_PRIMARY_BTN
                 }`}
               >
                 {confirmText}
@@ -166,7 +167,7 @@ function ConfirmationDialog({
             <button
               onClick={onConfirm}
               className={`rounded px-3 py-1 text-sm font-medium text-white ${
-                isDestructive ? 'bg-red-600 hover:bg-red-700' : CONFIRM_PRIMARY_BTN
+                isDestructive ? CONFIRM_DESTRUCTIVE_BTN : CONFIRM_PRIMARY_BTN
               }`}
             >
               {confirmText}

@@ -55,6 +55,7 @@
  *   re-fetch from the library URL on the server so that we avoid server-side
  *   CORS blockers.
  */
+import type { Prisma } from '@prisma/client';
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
@@ -218,14 +219,14 @@ export async function POST(req: NextRequest) {
     where: { sourceUrl: normalised },
     update: {
       // Always refresh the items when re-imported so data stays up-to-date.
-      items: items as any,
+      items: items as Prisma.InputJsonValue,
       // Only update name if a non-empty value was provided.
       ...(name ? { name } : {}),
     },
     create: {
       sourceUrl: normalised,
       name: name || (normalised.split('/').pop()?.replace('.excalidrawlib', '') ?? normalised),
-      items: items as any,
+      items: items as Prisma.InputJsonValue,
     },
   });
 
@@ -305,7 +306,7 @@ export async function PATCH(req: NextRequest) {
 
   await prisma.user.update({
     where: { id: userId },
-    data: { localLibraryItems: items as any },
+    data: { localLibraryItems: items as Prisma.InputJsonValue },
   });
 
   return NextResponse.json({ localItems: items });

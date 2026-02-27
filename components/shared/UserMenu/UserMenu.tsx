@@ -34,6 +34,7 @@
  */
 import { useEffect, useState } from 'react';
 
+import Image from 'next/image';
 import { signOut, useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 
@@ -147,7 +148,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
           type="button"
           aria-label={t('userMenu.label')}
           className={cn(
-            'motion-interactive flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full',
+            'motion-interactive relative flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full',
             'bg-linear-to-br from-indigo-500 to-violet-600',
             'text-xs font-bold text-white shadow-sm',
             'transition-shadow hover:shadow-md',
@@ -156,7 +157,7 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
           )}
         >
           {session?.user?.image ? (
-            <img src={session.user.image} alt="" className="h-full w-full object-cover" />
+            <Image src={session.user.image} alt="" fill sizes="32px" className="object-cover" unoptimized />
           ) : (
             initials
           )}
@@ -200,9 +201,9 @@ export function UserMenu({ onOpenSettings }: UserMenuProps) {
               >
           {/* ── User info header ──────────────────────────────────────── */}
           <div className="border-border/60 flex items-center gap-3 border-b px-4 py-3">
-            <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white">
+            <div className="relative flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full bg-linear-to-br from-indigo-500 to-violet-600 text-xs font-bold text-white">
               {session?.user?.image ? (
-                <img src={session.user.image} alt="" className="h-full w-full object-cover" />
+                <Image src={session.user.image} alt="" fill sizes="36px" className="object-cover" unoptimized />
               ) : (
                 initials
               )}

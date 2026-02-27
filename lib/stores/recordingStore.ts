@@ -46,12 +46,13 @@ export const useRecordingStore = create<RecordingState>((set) => ({
       return;
     }
 
-    state.cancelRecordingCallback?.();
-
+    const cancelCallback = state.cancelRecordingCallback;
     set({
       isRecording: false,
       recordingBlockId: null,
       cancelRecordingCallback: () => {},
     });
+
+    cancelCallback?.();
   },
 }));

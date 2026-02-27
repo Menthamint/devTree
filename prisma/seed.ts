@@ -3,6 +3,18 @@ import { hashPassword } from '../lib/auth/password';
 
 const prisma = new PrismaClient();
 
+const SEED_FOLDER_IDS = {
+  frontend: 'seed-folder-frontend',
+  backend: 'seed-folder-backend',
+} as const;
+
+const SEED_PAGE_IDS = {
+  reactHooks: 'seed-react-hooks',
+  typescriptTips: 'seed-typescript',
+  restApiDesign: 'seed-rest-api',
+  gettingStarted: 'seed-getting-started',
+} as const;
+
 async function main() {
   console.log('Seeding database...');
   const demoPassword = process.env.DEMO_PASSWORD ?? 'E2E!Passw0rd123';
@@ -47,10 +59,10 @@ async function main() {
 
   // ── Folders ──────────────────────────────────────────────────────────────────
   const frontendFolder = await prisma.folder.upsert({
-    where: { id: 'seed-folder-frontend' },
+    where: { id: SEED_FOLDER_IDS.frontend },
     update: { name: 'Frontend' },
     create: {
-      id: 'seed-folder-frontend',
+      id: SEED_FOLDER_IDS.frontend,
       name: 'Frontend',
       order: 0,
       ownerId: user.id,
@@ -58,10 +70,10 @@ async function main() {
   });
 
   const backendFolder = await prisma.folder.upsert({
-    where: { id: 'seed-folder-backend' },
+    where: { id: SEED_FOLDER_IDS.backend },
     update: { name: 'Backend' },
     create: {
-      id: 'seed-folder-backend',
+      id: SEED_FOLDER_IDS.backend,
       name: 'Backend',
       order: 1,
       ownerId: user.id,
@@ -71,8 +83,13 @@ async function main() {
   console.log('Folders:', frontendFolder.name, backendFolder.name);
 
   // ── Cleanup: delete non-seed pages and folders created by tests ───────────────
-  const seedPageIds = ['seed-react-hooks', 'seed-typescript', 'seed-rest-api', 'seed-getting-started'];
-  const seedFolderIds = ['seed-folder-frontend', 'seed-folder-backend'];
+  const seedPageIds = [
+    SEED_PAGE_IDS.reactHooks,
+    SEED_PAGE_IDS.typescriptTips,
+    SEED_PAGE_IDS.restApiDesign,
+    SEED_PAGE_IDS.gettingStarted,
+  ];
+  const seedFolderIds = [SEED_FOLDER_IDS.frontend, SEED_FOLDER_IDS.backend];
 
   const deletedPages = await prisma.page.deleteMany({
     where: {
@@ -93,10 +110,14 @@ async function main() {
   // ── Pages ─────────────────────────────────────────────────────────────────────
 
   const reactPage = await prisma.page.upsert({
-    where: { id: 'seed-react-hooks' },
-    update: { title: 'React Hooks', tags: ['react', 'hooks'], folderId: 'seed-folder-frontend' },
+    where: { id: SEED_PAGE_IDS.reactHooks },
+    update: {
+      title: 'React Hooks',
+      tags: ['react', 'hooks'],
+      folderId: SEED_FOLDER_IDS.frontend,
+    },
     create: {
-      id: 'seed-react-hooks',
+      id: SEED_PAGE_IDS.reactHooks,
       title: 'React Hooks',
       order: 0,
       tags: ['react', 'hooks'],
@@ -139,10 +160,14 @@ async function main() {
   });
 
   const tsPage = await prisma.page.upsert({
-    where: { id: 'seed-typescript' },
-    update: { title: 'TypeScript Tips', tags: ['typescript'], folderId: 'seed-folder-frontend' },
+    where: { id: SEED_PAGE_IDS.typescriptTips },
+    update: {
+      title: 'TypeScript Tips',
+      tags: ['typescript'],
+      folderId: SEED_FOLDER_IDS.frontend,
+    },
     create: {
-      id: 'seed-typescript',
+      id: SEED_PAGE_IDS.typescriptTips,
       title: 'TypeScript Tips',
       order: 1,
       tags: ['typescript'],
@@ -176,10 +201,14 @@ async function main() {
   });
 
   const apiPage = await prisma.page.upsert({
-    where: { id: 'seed-rest-api' },
-    update: { title: 'REST API Design', tags: ['api', 'backend'], folderId: 'seed-folder-backend' },
+    where: { id: SEED_PAGE_IDS.restApiDesign },
+    update: {
+      title: 'REST API Design',
+      tags: ['api', 'backend'],
+      folderId: SEED_FOLDER_IDS.backend,
+    },
     create: {
-      id: 'seed-rest-api',
+      id: SEED_PAGE_IDS.restApiDesign,
       title: 'REST API Design',
       order: 0,
       tags: ['api', 'backend'],
@@ -215,10 +244,10 @@ async function main() {
 
   // Root-level page (no folder)
   const gettingStartedPage = await prisma.page.upsert({
-    where: { id: 'seed-getting-started' },
+    where: { id: SEED_PAGE_IDS.gettingStarted },
     update: { title: 'Getting Started', tags: [], folderId: null },
     create: {
-      id: 'seed-getting-started',
+      id: SEED_PAGE_IDS.gettingStarted,
       title: 'Getting Started',
       order: 0,
       tags: [],
@@ -333,11 +362,11 @@ async function main() {
   console.log('Seeding complete.');
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+try {
+  await main();
+} catch (e) {
+  console.error(e);
+  process.exit(1);
+} finally {
+  await prisma.$disconnect();
+}

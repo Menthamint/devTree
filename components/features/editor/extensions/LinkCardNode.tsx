@@ -51,7 +51,7 @@ function LinkCardNodeView({ node, updateAttributes }: ReactNodeViewProps) {
       />
 
       {isEditable ? (
-        <div className="flex flex-col gap-2 p-3" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="flex flex-col gap-2 p-3">
           <input
             type="url"
             value={url ?? ''}

@@ -40,20 +40,47 @@ public class EditorPage(IPage page)
         if (!BlockLabelToSlashTitle.TryGetValue(blockLabel, out var slashTitle))
             throw new ArgumentException($"Unsupported block label: {blockLabel}", nameof(blockLabel));
 
-        // Click the "Add block" button in the editor footer.
-        var addBlockBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Add block", Exact = true });
-        await addBlockBtn.ClickAsync();
+        var searchInput = _page.Locator("input[aria-label='Search block types']").Last;
+        var pickerVisible = false;
 
-        // Wait for the block picker to appear.
-        var picker = _page.Locator("[role='menu'][aria-label='Insert block']");
-        await picker.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 5_000 });
+        for (var attempt = 0; attempt < 3 && !pickerVisible; attempt++)
+        {
+            // Click the "Add block" button in the editor footer.
+            var addBlockBtn = _page.GetByRole(AriaRole.Button, new() { Name = "Add block", Exact = true });
+            await addBlockBtn.ClickAsync(new() { Force = true });
+
+            try
+            {
+                await searchInput.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 3_000 });
+                pickerVisible = true;
+            }
+            catch (TimeoutException)
+            {
+                // Fallback: per-block inline insert button rendered in drag handle.
+                try
+                {
+                    await TiptapEditor.HoverAsync();
+                    var inlineInsertBtn = _page.Locator("button[aria-label='Insert block']").First;
+                    await inlineInsertBtn.ClickAsync(new() { Force = true, Timeout = 1_500 });
+                    await searchInput.WaitForAsync(new() { State = WaitForSelectorState.Visible, Timeout = 3_000 });
+                    pickerVisible = true;
+                }
+                catch
+                {
+                    // Retry opening picker.
+                }
+            }
+        }
+
+        if (!pickerVisible)
+            throw new TimeoutException("Failed to open block picker in editor.");
 
         // Type the full title into the search box to filter the list.
-        var searchInput = picker.Locator("input[aria-label='Search block types']");
         await searchInput.FillAsync(slashTitle);
         await _page.WaitForTimeoutAsync(200);
 
-        // Click the first matching item.
+        // Click the first matching item in the currently visible picker.
+        var picker = searchInput.Locator("xpath=ancestor::*[@role='menu'][1]");
         var item = picker.Locator("button").Filter(new() { HasText = slashTitle }).First;
         await item.ClickAsync(new() { Timeout = 5_000 });
         await _page.WaitForTimeoutAsync(300);
@@ -63,7 +90,7 @@ public class EditorPage(IPage page)
     /// No-op in the unified Tiptap editor (edit mode is page-wide, not per-block).
     /// Kept for API compatibility with existing tests.
     /// </summary>
-    public Task EnterEditModeForLastBlockAsync() => Task.CompletedTask;
+    public static Task EnterEditModeForLastBlockAsync() => Task.CompletedTask;
 
     /// <summary>Exits page-level edit mode by pressing Escape (or Cancel).</summary>
     public async Task ExitEditModeAsync()

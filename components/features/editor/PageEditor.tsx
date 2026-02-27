@@ -21,6 +21,7 @@ import { createPortal } from 'react-dom';
 import Highlight from '@tiptap/extension-highlight';
 import Link from '@tiptap/extension-link';
 import Placeholder from '@tiptap/extension-placeholder';
+import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
 import TextAlign from '@tiptap/extension-text-align';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
@@ -49,14 +50,12 @@ import './PageEditor.css';
 // ── Tag-filter helper ─────────────────────────────────────────────────────────
 // Returns true if the given top-level Tiptap node matches at least one of the
 // active filter tags.  Checks both atom-node attrs.tags and inline-tag marks.
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function nodeMatchesFilter(node: any, activeTags: string[]): boolean {
+function nodeMatchesFilter(node: ProseMirrorNode, activeTags: string[]): boolean {
   if (activeTags.length === 0) return true;
   const blockTags: string[] = Array.isArray(node.attrs?.tags) ? node.attrs.tags : [];
   if (blockTags.some((t: string) => activeTags.includes(t))) return true;
   let inlineMatch = false;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  node.descendants((child: any) => {
+  node.descendants((child: ProseMirrorNode) => {
     if (inlineMatch) return false;
     for (const mark of child.marks) {
       if (mark.type.name === 'inlineTag' && activeTags.includes(mark.attrs.tag as string)) {
@@ -69,9 +68,8 @@ function nodeMatchesFilter(node: any, activeTags: string[]): boolean {
 }
 
 // ── Apply or clear per-block display filtering ────────────────────────────────
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-function applyBlockFilter(editor: any, activeTags: string[]) {
-  const root = editor.view.dom.querySelector('.ProseMirror') as HTMLElement | null;
+function applyBlockFilter(editor: Editor, activeTags: string[]) {
+  const root = editor.view.dom.querySelector('.ProseMirror');
   if (!root) return;
 
   if (activeTags.length === 0) {
@@ -84,7 +82,7 @@ function applyBlockFilter(editor: any, activeTags: string[]) {
   }
 
   let index = 0;
-  editor.state.doc.forEach((node: any) => {
+  editor.state.doc.forEach((node: ProseMirrorNode) => {
     const domNode = root.children.item(index) as HTMLElement | null;
     index += 1;
     if (!domNode) return;

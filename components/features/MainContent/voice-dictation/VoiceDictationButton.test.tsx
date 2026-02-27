@@ -147,8 +147,10 @@ describe('VoiceDictationButton', () => {
         results: [finalResult],
       } as unknown as SpeechRecognitionEvent);
 
-      // onend is now async, wait for it to complete
-      await recognitionInstance.onend?.(new Event('end'));
+      const onEndResult = recognitionInstance.onend?.(new Event('end'));
+      if (onEndResult && typeof (onEndResult as Promise<void>).then === 'function') {
+        await Promise.resolve(onEndResult);
+      }
     });
 
     // Wait a bit for async formatting to complete
@@ -171,7 +173,9 @@ describe('VoiceDictationButton', () => {
   it('passes raw text when formatting is disabled', async () => {
     vi.useFakeTimers();
 
-    useSettingsStore.setState({ dictationFormattingEnabled: false });
+    await act(async () => {
+      useSettingsStore.setState({ dictationFormattingEnabled: false });
+    });
 
     const originalUserAgent = navigator.userAgent;
     Object.defineProperty(navigator, 'userAgent', {
@@ -243,8 +247,10 @@ describe('VoiceDictationButton', () => {
         results: [finalResult],
       } as unknown as SpeechRecognitionEvent);
 
-      // onend is now async, wait for it to complete
-      await recognitionInstance.onend?.(new Event('end'));
+      const onEndResult = recognitionInstance.onend?.(new Event('end'));
+      if (onEndResult && typeof (onEndResult as Promise<void>).then === 'function') {
+        await Promise.resolve(onEndResult);
+      }
     });
 
     // Wait for async operations
@@ -262,6 +268,8 @@ describe('VoiceDictationButton', () => {
       configurable: true,
     });
     vi.useRealTimers();
-    useSettingsStore.setState({ dictationFormattingEnabled: true });
+    await act(async () => {
+      useSettingsStore.setState({ dictationFormattingEnabled: true });
+    });
   });
 });

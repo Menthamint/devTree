@@ -51,6 +51,7 @@ type WorkspaceProps = Readonly<{
   initialRoutePageId?: string;
 }>;
 
+// eslint-disable-next-line sonarjs/cognitive-complexity -- top-level workspace container coordinates routing, tree, and save workflows
 export function Workspace({ initialRoutePageId }: WorkspaceProps) {
   // ─── Layout / search / filter state ─────────────────────────────────────
   const [activePageId, setActivePageId] = useState<string | null>(null);

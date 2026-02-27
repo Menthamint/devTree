@@ -2,9 +2,13 @@
 @import "tw-animate-css";
 
 /* Tell Tailwind v4 which files to scan for class names (relative to this file) */
+/* stylelint-disable-next-line at-rule-no-unknown */
 @source "../app/**/*.{ts,tsx,js,jsx}";
+/* stylelint-disable-next-line at-rule-no-unknown */
 @source "../components/**/*.{ts,tsx,js,jsx}";
+/* stylelint-disable-next-line at-rule-no-unknown */
 @source "../lib/**/*.{ts,tsx,js,jsx}";
+/* stylelint-disable-next-line at-rule-no-unknown */
 @source "../stories/**/*.{ts,tsx,js,jsx}";
 
 @custom-variant dark (&:is(.dark *));

@@ -397,7 +397,7 @@ export function isImageBlockContent(
  * guard. The outer `type === 'diagram'` check is the primary discriminant;
  * the content-shape checks are a safety net.
  */
-function isDiagramBlockContent(
+export function isDiagramBlockContent(
   content: BlockContent,
   type: BlockType,
 ): content is DiagramBlockContent {
@@ -411,7 +411,10 @@ function isDiagramBlockContent(
 }
 
 /** Video blocks have a URL; provider support is resolved in the component. */
-function isVideoBlockContent(content: BlockContent, type: BlockType): content is VideoBlockContent {
+export function isVideoBlockContent(
+  content: BlockContent,
+  type: BlockType,
+): content is VideoBlockContent {
   return type === 'video' && typeof content === 'object' && content !== null && 'url' in content;
 }
 

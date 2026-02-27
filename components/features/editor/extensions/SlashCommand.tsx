@@ -305,6 +305,7 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
       let reactRenderer: ReactRenderer<SlashListHandle> | null = null;
       let popupEl: HTMLDivElement | null = null;
       let removeOutsideListener: (() => void) | null = null;
+      let activeEditor: Editor | null = null;
 
       const cleanup = () => {
         if (removeOutsideListener) {
@@ -321,6 +322,7 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
 
       return {
         onStart(props) {
+          activeEditor = props.editor;
           // Create a DOM container for the portal
           popupEl = document.createElement('div');
           popupEl.style.position = 'fixed';
@@ -357,6 +359,7 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
         },
 
         onUpdate(props) {
+          activeEditor = props.editor;
           reactRenderer?.updateProps({ ...props, popupEl });
           if (!props.clientRect) return;
           const rect = props.clientRect();
@@ -368,13 +371,14 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
 
         onKeyDown(props) {
           if (props.event.key === 'Escape') {
-            props.editor.commands.blur();
+            activeEditor?.commands.blur();
             return true;
           }
           return reactRenderer?.ref?.onKeyDown(props.event) ?? false;
         },
 
         onExit() {
+          activeEditor = null;
           cleanup();
         },
       };
@@ -390,7 +394,7 @@ function buildSuggestionOptions(): Omit<SuggestionOptions, 'editor'> {
 
 // ─── Extension ────────────────────────────────────────────────────────────────
 
-const SlashCommand = Extension.create({
+export const SlashCommand = Extension.create({
   name: 'slashCommand',
 
   addOptions() {

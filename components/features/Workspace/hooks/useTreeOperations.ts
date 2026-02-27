@@ -54,6 +54,9 @@ import {
   WorkspaceApiError,
 } from '../workspaceApi';
 
+const DUPLICATE_NAME_CODE = 'DUPLICATE_NAME';
+const DUPLICATE_NAME_ERROR_KEY = 'tree.duplicateNameError';
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type DeleteDialogState = {
@@ -64,13 +67,13 @@ export type DeleteDialogState = {
 
 export type TreeOperationsParams = {
   treeRoot: TreeRoot;
-  treeRootRef: React.MutableRefObject<TreeRoot>;
+  treeRootRef: React.RefObject<TreeRoot>;
   setTreeRoot: React.Dispatch<React.SetStateAction<TreeRoot>>;
   pages: Page[];
   setPages: React.Dispatch<React.SetStateAction<Page[]>>;
-  dbFolderIds: React.MutableRefObject<Map<string, string>>;
-  serverBlocksRef: React.MutableRefObject<Map<string, Block[]>>;
-  serverPagesRef: React.MutableRefObject<Map<string, Page>>;
+  dbFolderIds: React.RefObject<Map<string, string>>;
+  serverBlocksRef: React.RefObject<Map<string, Block[]>>;
+  serverPagesRef: React.RefObject<Map<string, Page>>;
   showErrorToast: (message: string) => void;
   t: (key: string, params?: Record<string, string | number>) => string;
   /**
@@ -147,9 +150,9 @@ export function useTreeOperations({
               console.error('[createFolder:syncRename]', err);
               if (
                 err instanceof WorkspaceApiError &&
-                (err.status === 409 || err.code === 'DUPLICATE_NAME')
+                (err.status === 409 || err.code === DUPLICATE_NAME_CODE)
               ) {
-                showErrorToast(t('tree.duplicateNameError'));
+                showErrorToast(t(DUPLICATE_NAME_ERROR_KEY));
               }
             });
           }
@@ -158,9 +161,9 @@ export function useTreeOperations({
           console.error('[createFolder]', err);
           if (
             err instanceof WorkspaceApiError &&
-            (err.status === 409 || err.code === 'DUPLICATE_NAME')
+            (err.status === 409 || err.code === DUPLICATE_NAME_CODE)
           ) {
-            showErrorToast(t('tree.duplicateNameError'));
+            showErrorToast(t(DUPLICATE_NAME_ERROR_KEY));
           }
           // Revert the optimistic folder by removing the local node.
           setTreeRoot((root) => removeNode(root, localFolderId).root);
@@ -211,9 +214,9 @@ export function useTreeOperations({
           console.error('[createFile]', err);
           if (
             err instanceof WorkspaceApiError &&
-            (err.status === 409 || err.code === 'DUPLICATE_NAME')
+            (err.status === 409 || err.code === DUPLICATE_NAME_CODE)
           ) {
-            showErrorToast(t('tree.duplicateNameError'));
+            showErrorToast(t(DUPLICATE_NAME_ERROR_KEY));
           }
         });
     },
@@ -306,7 +309,7 @@ export function useTreeOperations({
           targetId = targetItem.id;
         } else {
           const node = findNodeInRoot(root, targetItem.id);
-          targetId = node?.pageId != null ? getParentId(root, targetItem.id) : targetItem.id;
+          targetId = node?.pageId == null ? targetItem.id : getParentId(root, targetItem.id);
         }
 
         const nextRoot = moveNode(root, sourceItem.id, targetId);
@@ -342,7 +345,7 @@ export function useTreeOperations({
     (folderId: string, name: string): boolean => {
       const parentId = getParentId(treeRoot, folderId);
       if (isNameTakenInScope(treeRoot, parentId, name, folderId)) {
-        showErrorToast(t('tree.duplicateNameError'));
+        showErrorToast(t(DUPLICATE_NAME_ERROR_KEY));
         return false;
       }
 
@@ -355,9 +358,9 @@ export function useTreeOperations({
         console.error('[renameFolder]', err);
         if (
           err instanceof WorkspaceApiError &&
-          (err.status === 409 || err.code === 'DUPLICATE_NAME')
+          (err.status === 409 || err.code === DUPLICATE_NAME_CODE)
         ) {
-          showErrorToast(t('tree.duplicateNameError'));
+          showErrorToast(t(DUPLICATE_NAME_ERROR_KEY));
         }
       });
       return true;

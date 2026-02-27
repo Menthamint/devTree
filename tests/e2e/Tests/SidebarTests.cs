@@ -123,8 +123,8 @@ public class SidebarTests : E2ETestBase
     {
         await App.Sidebar.HideAsync();
 
-        Assert.That(await App.Sidebar.IsVisibleAsync(), Is.False,
-            "Sidebar should be hidden after clicking Hide.");
+        var showBtn = Page.Locator("button[aria-label='Show sidebar'], button[aria-label='Показати бічну панель']").First;
+        await Expect(showBtn).ToBeVisibleAsync();
     }
 
     [Test]
@@ -133,7 +133,6 @@ public class SidebarTests : E2ETestBase
         await App.Sidebar.HideAsync();
         await App.Sidebar.ShowAsync();
 
-        Assert.That(await App.Sidebar.IsVisibleAsync(), Is.True,
-            "Sidebar should be visible again after clicking Show.");
+        await Expect(Page.GetByTestId("sidebar-new-page")).ToBeVisibleAsync();
     }
 }

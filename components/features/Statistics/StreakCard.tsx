@@ -22,7 +22,7 @@ function getMilestoneLabel(streak: number): string | null {
   return `${hit}-day streak! 🎉`;
 }
 
-export function StreakCard({ data, loading }: Props) {
+export function StreakCard({ data, loading }: Readonly<Props>) {
   if (loading || !data) {
     return (
       <Card className="motion-surface flex h-full flex-col justify-between">

@@ -81,6 +81,28 @@ describe('SettingsDialog', () => {
     expect(screen.getByText('Track content changes')).toBeInTheDocument();
   });
 
+  it('uses scrollable mobile tabs with screen-reader labels', () => {
+    render(
+      <Wrapper>
+        <SettingsDialog open onOpenChange={() => {}} />
+      </Wrapper>,
+    );
+
+    const tabNav = screen.getByRole('navigation', { name: /settings/i });
+    expect(tabNav).toHaveClass('overflow-x-auto');
+
+    const tabButtons = screen.getAllByRole('button', {
+      name: /account|appearance|features|statistics/i,
+    });
+    expect(tabButtons.length).toBe(4);
+
+    for (const button of tabButtons) {
+      expect(button).toHaveClass('shrink-0');
+      const label = button.querySelector('span.sr-only');
+      expect(label).toBeInTheDocument();
+    }
+  });
+
   it('does not render when closed', () => {
     render(
       <Wrapper>

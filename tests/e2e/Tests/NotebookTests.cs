@@ -93,7 +93,9 @@ public class NotebookTests : E2ETestBase
     public async Task DeletePage_ShowsConfirmationDialog()
     {
         await App.Sidebar.CreatePageAsync();
-        await App.Sidebar.DeleteLastPageAsync();
+        var title = $"Delete Dialog {Guid.NewGuid():N}"[..18];
+        await App.Sidebar.RenameActivePageTitleAsync(title);
+        await App.Sidebar.DeletePageByTitleAsync(title);
 
         // A dialog with confirmation buttons should appear.
         var dialog = Page.Locator("[role='alertdialog'], [role='dialog']").First;
@@ -103,10 +105,11 @@ public class NotebookTests : E2ETestBase
     [Test]
     public async Task DeletePage_Confirm_RemovesFromSidebar()
     {
-        var created = await App.Sidebar.CreatePageAsync();
-        var title = (await created.InnerTextAsync()).Trim();
+        await App.Sidebar.CreatePageAsync();
+        var title = $"Delete Confirm {Guid.NewGuid():N}"[..20];
+        await App.Sidebar.RenameActivePageTitleAsync(title);
 
-        await App.Sidebar.DeleteLastPageAsync();
+        await App.Sidebar.DeletePageByTitleAsync(title);
         await App.Sidebar.ConfirmDeleteDialogAsync();
 
         var removed = Page.Locator("aside").GetByText(title, new() { Exact = true });
@@ -116,10 +119,11 @@ public class NotebookTests : E2ETestBase
     [Test]
     public async Task DeletePage_Cancel_PageStillInSidebar()
     {
-        var created = await App.Sidebar.CreatePageAsync();
-        var title = (await created.InnerTextAsync()).Trim();
+        await App.Sidebar.CreatePageAsync();
+        var title = $"Delete Cancel {Guid.NewGuid():N}"[..19];
+        await App.Sidebar.RenameActivePageTitleAsync(title);
 
-        await App.Sidebar.DeleteLastPageAsync();
+        await App.Sidebar.DeletePageByTitleAsync(title);
         await App.Sidebar.CancelDeleteDialogAsync();
 
         await Expect(Page.Locator("aside").GetByText(title, new() { Exact = true }).First)

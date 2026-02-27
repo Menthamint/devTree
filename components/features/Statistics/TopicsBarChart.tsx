@@ -6,8 +6,6 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
-  ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
@@ -58,7 +56,31 @@ function CustomTooltip({ active, payload }: any) {
   );
 }
 
-export function TopicsBarChart({ data, loading }: Props) {
+export function TopicsBarChart({ data, loading }: Readonly<Props>) {
+  const chartHostRef = React.useRef<HTMLDivElement | null>(null);
+  const [chartSize, setChartSize] = React.useState({ width: 0, height: 0 });
+
+  React.useEffect(() => {
+    const host = chartHostRef.current;
+    if (!host) return;
+
+    const updateSize = () => {
+      const nextWidth = Math.floor(host.clientWidth);
+      const nextHeight = Math.floor(host.clientHeight);
+      setChartSize((prev) =>
+        prev.width === nextWidth && prev.height === nextHeight
+          ? prev
+          : { width: nextWidth, height: nextHeight },
+      );
+    };
+
+    updateSize();
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(host);
+
+    return () => observer.disconnect();
+  }, [loading, data]);
+
   const chartData = data
     .filter((d) => d.timeSpentMs > 0)
     .slice(0, 8)
@@ -81,36 +103,38 @@ export function TopicsBarChart({ data, loading }: Props) {
             );
           }
           return (
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart
-                data={chartData}
-                layout="vertical"
-                margin={{ top: 4, right: 16, left: 8, bottom: 0 }}
-              >
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
-                <XAxis
-                  type="number"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  unit="m"
-                />
-                <YAxis
-                  type="category"
-                  dataKey="folderName"
-                  tick={{ fontSize: 11 }}
-                  tickLine={false}
-                  axisLine={false}
-                  width={90}
-                />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
-                <Bar dataKey="timeMin" radius={[0, 4, 4, 0]}>
-                  {chartData.map((_, i) => (
-                    <Cell key={i} fill={PALETTE[i % PALETTE.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <div ref={chartHostRef} className="h-full w-full" data-testid="topics-bar-chart-host">
+              {chartSize.width > 0 && chartSize.height > 0 ? (
+                <BarChart
+                  width={chartSize.width}
+                  height={chartSize.height}
+                  data={chartData}
+                  layout="vertical"
+                  margin={{ top: 4, right: 16, left: 8, bottom: 0 }}
+                >
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
+                  <XAxis
+                    type="number"
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    unit="m"
+                  />
+                  <YAxis
+                    type="category"
+                    dataKey="folderName"
+                    tick={{ fontSize: 11 }}
+                    tickLine={false}
+                    axisLine={false}
+                    width={90}
+                  />
+                  <Tooltip content={<CustomTooltip />} cursor={{ fill: 'hsl(var(--muted))' }} />
+                  <Bar dataKey="timeMin" radius={[0, 4, 4, 0]} fill={PALETTE[0]} />
+                </BarChart>
+              ) : (
+                <div className="bg-muted h-full w-full animate-pulse rounded" />
+              )}
+            </div>
           );
         })()}
       </CardContent>

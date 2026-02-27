@@ -42,19 +42,21 @@ const TICK_STYLE = { fontSize: 11, fill: '#6b7280' }; // gray-500, readable on d
 
 // ─── Shared tooltip ──────────────────────────────────────────────────────────
 interface TooltipProps {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   active?: boolean;
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  payload?: any[];
+  payload?: Array<{
+    payload?: { rawDate?: string };
+    color?: string;
+    name?: string;
+    value?: number;
+  }>;
   isTime?: boolean;
 }
 
-function ChartTooltip({ active, payload, isTime }: TooltipProps) {
+function ChartTooltip({ active, payload, isTime }: Readonly<TooltipProps>) {
   if (!active || !payload?.length) return null;
-  const rawDate: string | undefined = payload[0]?.payload?.rawDate as string | undefined;
+  const rawDate = payload[0]?.payload?.rawDate;
   const dateLabel = rawDate ? formatDateLong(parseLocalDate(rawDate)) : '';
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const entry: any = payload[0];
+  const entry = payload[0];
   return (
     <div className="bg-background rounded-lg border p-3 text-sm shadow-sm">
       {dateLabel && <p className="text-foreground mb-1.5 font-semibold">{dateLabel}</p>}
@@ -89,7 +91,15 @@ function buildDisplayData(sliced: ActivityDay[]) {
   }));
 }
 
-function MiniChart({ data, title, dataKey, color, gradId, tickInterval, isTime }: MiniChartProps) {
+function MiniChart({
+  data,
+  title,
+  dataKey,
+  color,
+  gradId,
+  tickInterval,
+  isTime,
+}: Readonly<MiniChartProps>) {
   // Time chart needs a wider Y-axis to fit labels like "16h 10m".
   // Both charts need bottom margin so date labels aren't clipped.
   const yAxisWidth = isTime ? 58 : 30;
@@ -138,7 +148,7 @@ function MiniChart({ data, title, dataKey, color, gradId, tickInterval, isTime }
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-export function DailyActivityChart({ data, loading }: Props) {
+export function DailyActivityChart({ data, loading }: Readonly<Props>) {
   const [view, setView] = useState<View>('30');
 
   const sliced = data.slice(-Number(view));

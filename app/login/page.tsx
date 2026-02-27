@@ -89,6 +89,10 @@ const LOCALE_OPTIONS: { id: Locale; label: string }[] = [
   { id: 'uk', label: 'UA' },
 ];
 
+const AUTH_ERROR_GENERIC_KEY = 'auth.errorGeneric';
+const REQUIREMENT_MET_CLASS = 'text-green-600 dark:text-green-400';
+const REQUIREMENT_UNMET_ICON_CLASS = 'text-muted-foreground mr-1.5 inline h-3.5 w-3.5';
+
 // eslint-disable-next-line sonarjs/cognitive-complexity -- combined login/register form has inherent complexity
 export default function LoginPage() {
   const router = useRouter();
@@ -150,14 +154,14 @@ export default function LoginPage() {
       });
       const data = (await res.json().catch(() => ({}))) as { error?: string };
       if (!res.ok) {
-        setError(data.error ?? t('auth.errorGeneric'));
+        setError(data.error ?? t(AUTH_ERROR_GENERIC_KEY));
         setLoading(false);
         return;
       }
       setJustRegistered(true);
       switchMode('login');
     } catch {
-      setError(t('auth.errorGeneric'));
+      setError(t(AUTH_ERROR_GENERIC_KEY));
     }
     setLoading(false);
   };
@@ -179,7 +183,7 @@ export default function LoginPage() {
       router.push(callbackUrl);
       router.refresh();
     } catch {
-      setError(t('auth.errorGeneric'));
+      setError(t(AUTH_ERROR_GENERIC_KEY));
       setLoading(false);
     }
   };
@@ -194,7 +198,7 @@ export default function LoginPage() {
     return errors;
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
     setFieldErrors({});
@@ -397,61 +401,61 @@ export default function LoginPage() {
                   <ul className="text-muted-foreground space-y-1 text-xs">
                     <li
                       className={
-                        passwordRequirements.minLength ? 'text-green-600 dark:text-green-400' : ''
+                        passwordRequirements.minLength ? REQUIREMENT_MET_CLASS : ''
                       }
                     >
                       {passwordRequirements.minLength ? (
                         <Check className="mr-1.5 inline h-3.5 w-3.5" />
                       ) : (
-                        <X className="text-muted-foreground mr-1.5 inline h-3.5 w-3.5" />
+                        <X className={REQUIREMENT_UNMET_ICON_CLASS} />
                       )}
                       {t('auth.charCount', { count: PASSWORD_RULES.minLength })}
                     </li>
                     <li
                       className={
-                        passwordRequirements.uppercase ? 'text-green-600 dark:text-green-400' : ''
+                        passwordRequirements.uppercase ? REQUIREMENT_MET_CLASS : ''
                       }
                     >
                       {passwordRequirements.uppercase ? (
                         <Check className="mr-1.5 inline h-3.5 w-3.5" />
                       ) : (
-                        <X className="text-muted-foreground mr-1.5 inline h-3.5 w-3.5" />
+                        <X className={REQUIREMENT_UNMET_ICON_CLASS} />
                       )}
                       {t('auth.oneUppercase')}
                     </li>
                     <li
                       className={
-                        passwordRequirements.lowercase ? 'text-green-600 dark:text-green-400' : ''
+                        passwordRequirements.lowercase ? REQUIREMENT_MET_CLASS : ''
                       }
                     >
                       {passwordRequirements.lowercase ? (
                         <Check className="mr-1.5 inline h-3.5 w-3.5" />
                       ) : (
-                        <X className="text-muted-foreground mr-1.5 inline h-3.5 w-3.5" />
+                        <X className={REQUIREMENT_UNMET_ICON_CLASS} />
                       )}
                       {t('auth.oneLowercase')}
                     </li>
                     <li
                       className={
-                        passwordRequirements.number ? 'text-green-600 dark:text-green-400' : ''
+                        passwordRequirements.number ? REQUIREMENT_MET_CLASS : ''
                       }
                     >
                       {passwordRequirements.number ? (
                         <Check className="mr-1.5 inline h-3.5 w-3.5" />
                       ) : (
-                        <X className="text-muted-foreground mr-1.5 inline h-3.5 w-3.5" />
+                        <X className={REQUIREMENT_UNMET_ICON_CLASS} />
                       )}
                       {t('auth.oneNumber')}
                     </li>
                     <li
                       className={
-                        passwordRequirements.special ? 'text-green-600 dark:text-green-400' : ''
+                        passwordRequirements.special ? REQUIREMENT_MET_CLASS : ''
                       }
                     >
                       {passwordRequirements.special ? (
                         <Check className="mr-1.5 inline h-3.5 w-3.5" />
                       ) : (
-                        <X className="text-muted-foreground mr-1.5 inline h-3.5 w-3.5" />
+                        <X className={REQUIREMENT_UNMET_ICON_CLASS} />
                       )}
                       {t('auth.oneSpecial')}
                     </li>

@@ -49,9 +49,9 @@ import React from 'react';
 import { FilePlus, FolderPlus, Trash2, Edit2, MoreVertical } from 'lucide-react';
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 
-import type { TreeDataItem } from '@/components/ui/tree-view';
+import type { TreeDataItem } from '@/components/shared/ui/tree-view';
 
-import type { TreeRoot, TreeNode } from './treeTypes';
+import type { TreeRoot, TreeNode } from '@/components/features/Workspace/treeTypes';
 
 const nameCollator = new Intl.Collator(undefined, {
   sensitivity: 'base',
@@ -128,91 +128,64 @@ function createNodeToTreeDataItem(
     rowClassName = 'bg-muted/50 text-foreground';
   }
 
-  /**
-   * Activate an action when the user presses Enter or Space on a keyboard-
-   * focused action button. This implements the ARIA button keyboard contract.
-   *
-   * `e.stopPropagation()` prevents the tree row's own click handler from also
-   * firing (which would try to select the node as a page).
-   */
-  const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      e.stopPropagation();
-      action();
-    }
-  };
-
   /** Delete icon button — shown for both files and folders. */
   const deleteButton = (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <span
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-label={t('tree.delete')}
       className="cursor-pointer rounded p-1 hover:bg-destructive/20 focus:outline-none focus:ring-2 focus:ring-primary/20"
       onClick={(e) => {
         e.stopPropagation();
         onDelete(node.id);
       }}
-      onKeyDown={(e) => handleKeyDown(e, () => onDelete(node.id))}
     >
       <Trash2 size={14} />
-    </span>
+    </button>
   );
 
   /** Rename icon button — folders only. */
   const renameButton = isFolder ? (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <span
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-label={t('tree.rename')}
       className="cursor-pointer rounded p-1 hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary/20"
       onClick={(e) => {
         e.stopPropagation();
         editingState.setFolderId(node.id);
       }}
-      onKeyDown={(e) => handleKeyDown(e, () => editingState.setFolderId(node.id))}
     >
       <Edit2 size={14} />
-    </span>
+    </button>
   ) : null;
 
   /** Create file button — folders only. */
   const newFileButton = isFolder ? (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <span
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-label={t('tree.newFile')}
       className="cursor-pointer rounded p-1 hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary/20"
       onClick={(e) => {
         e.stopPropagation();
         onCreateFile(node.id);
       }}
-      onKeyDown={(e) => handleKeyDown(e, () => onCreateFile(node.id))}
     >
       <FilePlus size={14} />
-    </span>
+    </button>
   ) : null;
 
   /** Create folder button — folders only. */
   const newFolderButton = isFolder ? (
-    // eslint-disable-next-line jsx-a11y/no-static-element-interactions
-    <span
-      role="button"
-      tabIndex={0}
+    <button
+      type="button"
       aria-label={t('tree.newFolder')}
       className="cursor-pointer rounded p-1 hover:bg-accent focus:outline-none focus:ring-2 focus:ring-primary/20"
       onClick={(e) => {
         e.stopPropagation();
         onCreateFolder(node.id);
       }}
-      onKeyDown={(e) => handleKeyDown(e, () => onCreateFolder(node.id))}
     >
       <FolderPlus size={14} />
-    </span>
+    </button>
   ) : null;
 
   // Map of button type → element with stable keys
@@ -235,22 +208,14 @@ function createNodeToTreeDataItem(
     actionCount > 2 ? (
       <DropdownMenu.Root>
         <DropdownMenu.Trigger asChild>
-          {/* eslint-disable-next-line jsx-a11y/no-static-element-interactions */}
-          <span
-            role="button"
-            tabIndex={0}
+          <button
+            type="button"
             aria-label={t('tree.moreActions')}
             className="cursor-pointer rounded p-1 hover:bg-muted/60 focus:outline-none focus:ring-2 focus:ring-primary/20"
             onClick={(e) => e.stopPropagation()}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                e.stopPropagation();
-              }
-            }}
           >
             <MoreVertical size={14} />
-          </span>
+          </button>
         </DropdownMenu.Trigger>
         <DropdownMenu.Portal>
           <DropdownMenu.Content

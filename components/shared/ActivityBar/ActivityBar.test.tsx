@@ -45,4 +45,16 @@ describe('ActivityBar', () => {
 
     expect(pushMock).toHaveBeenCalledWith('/notebook');
   });
+
+  it('uses horizontally scrollable mobile tab bar layout', () => {
+    const { container } = render(<ActivityBar />);
+    const nav = container.querySelector('nav');
+    expect(nav).toHaveClass('overflow-x-auto');
+
+    const buttons = screen.getAllByRole('button');
+    expect(buttons.length).toBeGreaterThan(0);
+    for (const button of buttons) {
+      expect(button).toHaveClass('shrink-0');
+    }
+  });
 });

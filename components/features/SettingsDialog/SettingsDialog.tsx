@@ -29,6 +29,7 @@
  */
 import { useEffect, useRef, useState } from 'react';
 
+import Image from 'next/image';
 import { useSession } from 'next-auth/react';
 import { useTheme } from 'next-themes';
 
@@ -321,6 +322,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 key={id}
                 type="button"
                 onClick={() => setActiveTab(id)}
+                aria-label={t(labelKey)}
                 className={cn(
                   'motion-interactive flex shrink-0 items-center justify-center gap-2 px-3 py-2.5 text-center text-sm font-medium whitespace-nowrap transition-colors sm:flex-initial sm:justify-start sm:px-4 sm:text-left',
                   activeTab === id
@@ -339,7 +341,7 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                 >
                   {icon}
                 </span>
-                <span className="hidden sm:inline">{t(labelKey)}</span>
+                <span className="sr-only sm:not-sr-only sm:inline">{t(labelKey)}</span>
               </button>
             ))}
           </nav>
@@ -364,7 +366,14 @@ export function SettingsDialog({ open, onOpenChange }: SettingsDialogProps) {
                         )}
                       >
                         {user?.image ? (
-                          <img src={user.image} alt="" className="h-full w-full object-cover" />
+                          <Image
+                            src={user.image}
+                            alt=""
+                            fill
+                            sizes="56px"
+                            className="object-cover"
+                            unoptimized
+                          />
                         ) : (
                           initials
                         )}

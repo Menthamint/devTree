@@ -9,6 +9,7 @@ function normalizeName(name: string): string {
 }
 
 type Params = { params: Promise<{ pageId: string }> };
+const PAGE_NOT_FOUND_ERROR = 'Page not found';
 
 // ─── Shared ownership check ───────────────────────────────────────────────────
 
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest, { params }: Params) {
   const { pageId } = await params;
   const page = await getOwnedPage(pageId, auth.userId);
   if (!page) {
-    return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    return NextResponse.json({ error: PAGE_NOT_FOUND_ERROR }, { status: 404 });
   }
 
   return NextResponse.json(page);
@@ -61,8 +62,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const updates: { title?: string; order?: number; tags?: string[]; content?: any } = {};
+  const updates: { title?: string; order?: number; tags?: string[]; content?: unknown } = {};
 
   // content is an arbitrary Tiptap JSON object — accept any object or null
   if (
@@ -140,7 +140,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
   const { pageId } = await params;
   const page = await getOwnedPage(pageId, auth.userId);
   if (!page) {
-    return NextResponse.json({ error: 'Page not found' }, { status: 404 });
+    return NextResponse.json({ error: PAGE_NOT_FOUND_ERROR }, { status: 404 });
   }
 
   try {

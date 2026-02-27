@@ -126,87 +126,64 @@ function createNodeToTreeDataItem(
       rowClassName = 'bg-muted/50 text-foreground';
     }
 
-    /**
-     * Activate an action when the user presses Enter or Space on a keyboard-
-     * focused action button. This implements the ARIA button keyboard contract.
-     *
-     * `e.stopPropagation()` prevents the tree row's own click handler from also
-     * firing (which would try to select the node as a page).
-     */
-    const handleKeyDown = (e: React.KeyboardEvent, action: () => void) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        e.stopPropagation();
-        action();
-      }
-    };
-
     /** Delete icon button — shown for both files and folders. */
     const deleteButton = (
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-label={t('tree.delete')}
         className="hover:bg-destructive/20 focus:ring-primary/20 cursor-pointer rounded p-1 focus:ring-2 focus:outline-none"
         onClick={(e) => {
           e.stopPropagation();
           onDelete(node.id);
         }}
-        onKeyDown={(e) => handleKeyDown(e, () => onDelete(node.id))}
       >
         <Trash2 size={14} />
-      </span>
+      </button>
     );
 
     /** Rename icon button — folders only. */
     const renameButton = isFolder ? (
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-label={t('tree.rename')}
         className="hover:bg-accent focus:ring-primary/20 cursor-pointer rounded p-1 focus:ring-2 focus:outline-none"
         onClick={(e) => {
           e.stopPropagation();
           editingState.setFolderId(node.id);
         }}
-        onKeyDown={(e) => handleKeyDown(e, () => editingState.setFolderId(node.id))}
       >
         <Edit2 size={14} />
-      </span>
+      </button>
     ) : null;
 
     /** Create file button — folders only. */
     const newFileButton = isFolder ? (
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-label={t('tree.newFile')}
         className="hover:bg-accent focus:ring-primary/20 cursor-pointer rounded p-1 focus:ring-2 focus:outline-none"
         onClick={(e) => {
           e.stopPropagation();
           onCreateFile(node.id);
         }}
-        onKeyDown={(e) => handleKeyDown(e, () => onCreateFile(node.id))}
       >
         <FilePlus size={14} />
-      </span>
+      </button>
     ) : null;
 
     /** Create folder button — folders only. */
     const newFolderButton = isFolder ? (
-      <span
-        role="button"
-        tabIndex={0}
+      <button
+        type="button"
         aria-label={t('tree.newFolder')}
         className="hover:bg-accent focus:ring-primary/20 cursor-pointer rounded p-1 focus:ring-2 focus:outline-none"
         onClick={(e) => {
           e.stopPropagation();
           onCreateFolder(node.id);
         }}
-        onKeyDown={(e) => handleKeyDown(e, () => onCreateFolder(node.id))}
       >
         <FolderPlus size={14} />
-      </span>
+      </button>
     ) : null;
 
     // Map of button type → element with stable keys
@@ -230,21 +207,14 @@ function createNodeToTreeDataItem(
         <DropdownMenu.Root>
           <DropdownMenu.Trigger asChild>
             {}
-            <span
-              role="button"
-              tabIndex={0}
+            <button
+              type="button"
               aria-label={t('tree.moreActions')}
               className="hover:bg-muted/60 focus:ring-primary/20 cursor-pointer rounded p-1 focus:ring-2 focus:outline-none"
               onClick={(e) => e.stopPropagation()}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' || e.key === ' ') {
-                  e.preventDefault();
-                  e.stopPropagation();
-                }
-              }}
             >
               <MoreVertical size={14} />
-            </span>
+            </button>
           </DropdownMenu.Trigger>
           <DropdownMenu.Portal>
             <DropdownMenu.Content

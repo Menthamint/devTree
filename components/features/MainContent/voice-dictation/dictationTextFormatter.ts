@@ -89,7 +89,7 @@ export function formatDictationText(text: string): string {
  * Format interim text for real-time display during recording.
  * Does NOT add terminal punctuation (user is still speaking).
  */
-function formatInterimDictationText(text: string): string {
+export function formatInterimDictationText(text: string): string {
   if (!text.trim()) return '';
 
   const normalizedWhitespace = normalizeWhitespace(text);

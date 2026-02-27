@@ -40,7 +40,7 @@ interface CardConfig {
 
 // Returns { pct, label } for the nearest milestone above `value`
 function milestoneProgress(value: number, milestones: number[]): { pct: number; label: string } {
-  const next = milestones.find((m) => m > value) ?? milestones[milestones.length - 1];
+  const next = milestones.find((m) => m > value) ?? milestones.at(-1) ?? value;
   const prev = milestones[milestones.indexOf(next) - 1] ?? 0;
   const pct = Math.min(100, Math.round(((value - prev) / (next - prev)) * 100));
   return { pct, label: `${value} / ${next}` };
@@ -98,7 +98,7 @@ function buildWritingBar(
   if (!writingMilestone) return null;
   const nextMs =
     WRITING_MILESTONES.find((m) => m > (data?.totalWritingTimeMs ?? 0)) ??
-    WRITING_MILESTONES[WRITING_MILESTONES.length - 1]!;
+    WRITING_MILESTONES.at(-1) ?? 0;
   return {
     label: `next milestone: ${formatDuration(nextMs)}`,
     pct: writingMilestone.pct,
@@ -121,7 +121,7 @@ function buildCountCards(
         "Total number of notes you've created. The bar shows progress toward your next notes milestone.",
       icon: <BookOpen className="text-muted-foreground h-4 w-4" />,
       value: data ? data.totalPages.toLocaleString() : null,
-      sub1: avgBlocksPerNote !== null ? `${avgBlocksPerNote} blocks / note` : 'No notes yet',
+      sub1: avgBlocksPerNote === null ? 'No notes yet' : `${avgBlocksPerNote} blocks / note`,
       sub2: data ? `${data.totalBlocks.toLocaleString()} blocks total` : null,
       bar: buildNotesBar(noteMilestone),
     },
@@ -133,7 +133,7 @@ function buildCountCards(
       icon: <Layout className="text-muted-foreground h-4 w-4" />,
       value: data ? data.totalBlocks.toLocaleString() : null,
       sub1: data && data.totalPages > 0 ? `across ${data.totalPages} notes` : 'Start writing!',
-      sub2: avgBlocksPerNote !== null ? `avg ${avgBlocksPerNote} per note` : null,
+      sub2: avgBlocksPerNote === null ? null : `avg ${avgBlocksPerNote} per note`,
       bar: buildBlocksBar(data, avgBlocksPerNote, richnessPct),
     },
   ];
@@ -153,7 +153,7 @@ function buildTimeCards(
         "Total time you've spent in the app across all sessions. The bar shows your writing focus — what portion of that time was spent actively writing vs just browsing.",
       icon: <Clock className="text-muted-foreground h-4 w-4" />,
       value: data ? formatDuration(data.totalSessionTimeMs) : null,
-      sub1: writingPct !== null ? `${writingPct}% writing focus` : 'Time spent in app',
+      sub1: writingPct === null ? 'Time spent in app' : `${writingPct}% writing focus`,
       sub2: browsingTimeMs > 0 ? `${formatDuration(browsingTimeMs)} browsing` : null,
       bar: buildSessionBar(writingPct),
     },
@@ -164,7 +164,7 @@ function buildTimeCards(
         'Total time spent actively typing in the editor. The bar shows progress toward your next writing time milestone (30m → 2h → 10h → 25h…).',
       icon: <PenTool className="text-muted-foreground h-4 w-4" />,
       value: data ? formatDuration(data.totalWritingTimeMs) : null,
-      sub1: writingPct !== null ? `${writingPct}% of session time` : 'Actively typing',
+      sub1: writingPct === null ? 'Actively typing' : `${writingPct}% of session time`,
       sub2: browsingTimeMs > 0 ? `${formatDuration(browsingTimeMs)} other activity` : null,
       bar: buildWritingBar(data, writingMilestone),
     },
@@ -193,7 +193,7 @@ function buildCards(data: SummaryData | null): CardConfig[] {
   ];
 }
 
-export function StatsSummaryCards({ data, loading }: Props) {
+export function StatsSummaryCards({ data, loading }: Readonly<Props>) {
   const cards = buildCards(data);
 
   return (

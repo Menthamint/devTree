@@ -82,7 +82,7 @@ type BlockPickerAnchor = {
   insertAt: number;
 };
 
-type Props = { editor: Editor };
+type Props = Readonly<{ editor: Editor }>;
 
 // ── Helper — resolve top-level node pos ──────────────────────────────────────
 
@@ -116,7 +116,7 @@ export function BlockControls({ editor }: Props) {
     if (!editor) return;
     const wrapper = editor.view.dom.parentElement;
     if (!wrapper) return;
-    const el = wrapper.querySelector('.drag-handle') as HTMLElement | null;
+    const el = wrapper.querySelector<HTMLElement>('.drag-handle');
     if (!el) return;
     setHandleEl(el);
   }, [editor]);
@@ -127,7 +127,7 @@ export function BlockControls({ editor }: Props) {
   useEffect(() => {
     if (!handleEl) return;
     // Find the closest scrollable ancestor of the editor DOM node
-    const editorDom = editor.view.dom as HTMLElement;
+    const editorDom = editor.view.dom;
     let scrollEl: HTMLElement | null = editorDom.parentElement;
     while (scrollEl && scrollEl !== document.body) {
       const overflow = globalThis.getComputedStyle(scrollEl).overflowY;
@@ -211,11 +211,11 @@ export function BlockControls({ editor }: Props) {
 
       const nodePos = resolveNodePosFromHandle(editor, handleEl);
       let insertAt: number;
-      if (nodePos != null) {
+      if (nodePos == null) {
+        insertAt = editor.state.doc.content.size;
+      } else {
         const node = editor.state.doc.nodeAt(nodePos);
         insertAt = node ? nodePos + node.nodeSize : nodePos + 1;
-      } else {
-        insertAt = editor.state.doc.content.size;
       }
 
       // Position the picker to the right of the drag handle, near the + button.

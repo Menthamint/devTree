@@ -91,8 +91,8 @@ const LOCALE_COOKIE_MAX_AGE = 60 * 60 * 24 * 365; // 1 year in seconds
  * Read the persisted locale from localStorage (client-only).
  * Used when syncing cookie from localStorage via the layout script.
  */
-function getStoredLocale(): Locale {
-  if (typeof window === 'undefined') return 'en';
+export function getStoredLocale(): Locale {
+  if (globalThis.window === undefined) return 'en';
   const stored = localStorage.getItem(LOCALE_STORAGE_KEY);
   if (stored === 'en' || stored === 'uk') return stored;
   return 'en';
@@ -125,12 +125,12 @@ export function I18nProvider({
    * Use the locale from the server (cookie or Accept-Language) so server and
    * client render the same HTML and hydration does not fail.
    */
-  const [locale, setLocaleState] = useState<Locale>(initialLocale);
+  const [locale, setLocale] = useState<Locale>(initialLocale);
 
   /** Persist locale to state, localStorage, and cookie (cookie ensures next full page load matches). */
-  const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
-    if (typeof window !== 'undefined') {
+  const persistLocale = useCallback((next: Locale) => {
+    setLocale(next);
+    if (globalThis.window !== undefined) {
       localStorage.setItem(LOCALE_STORAGE_KEY, next);
       document.documentElement.dataset.locale = next;
       document.cookie = `${LOCALE_COOKIE_NAME}=${next}; path=/; max-age=${LOCALE_COOKIE_MAX_AGE}; SameSite=Lax`;
@@ -158,7 +158,7 @@ export function I18nProvider({
       if (!params) return raw;
       // Replace each {{placeholder}} with its value
       return Object.entries(params).reduce(
-        (acc, [k, v]) => acc.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), String(v)),
+        (acc, [k, v]) => acc.replaceAll(String.raw`{{${k}}}`, String(v)),
         raw,
       );
     },
@@ -174,7 +174,7 @@ export function I18nProvider({
    *   useMemo ensures referential stability when locale, setLocale, and t are
    *   all unchanged.
    */
-  const value = useMemo(() => ({ locale, setLocale, t }), [locale, setLocale, t]);
+  const value = useMemo(() => ({ locale, setLocale: persistLocale, t }), [locale, persistLocale, t]);
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>;
 }

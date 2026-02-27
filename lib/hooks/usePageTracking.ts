@@ -12,27 +12,11 @@ import { useEffect, useRef } from 'react';
 
 import { useSession } from 'next-auth/react';
 
-import { type ContentEventType, useStatsStore } from '@/lib/stores/statsStore';
+import { useStatsStore } from '@/lib/stores/statsStore';
 
 interface PageTrackingOptions {
   pageId: string | undefined;
   folderId?: string;
-}
-
-/** Emit a content event directly (e.g. from API success callbacks). */
-function emitContentEvent(opts: {
-  type: ContentEventType;
-  pageId?: string;
-  folderId?: string;
-  blockId?: string;
-}) {
-  const { enqueue, enabled } = useStatsStore.getState();
-  if (!enabled) return;
-  enqueue({
-    kind: 'CONTENT_EVENT',
-    ...opts,
-    timestamp: new Date().toISOString(),
-  });
 }
 
 export function usePageTracking({ pageId, folderId }: PageTrackingOptions) {

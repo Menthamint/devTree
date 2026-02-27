@@ -126,20 +126,33 @@ function CanvasNodeView({ node, updateAttributes }: ReactNodeViewProps) {
    * initialData.appState via object spread; if collaborators is undefined/{}
    * the default `new Map()` gets overridden, causing the forEach crash.
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const stableInitialData = useMemo<any>(() => {
+  const stableInitialData = useMemo<Record<string, unknown>>(() => {
     try {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const parsed: any = data ? JSON.parse(data) : {};
+      const parsed = data ? (JSON.parse(data) as Record<string, unknown>) : null;
+      if (!parsed) {
+        return { appState: { collaborators: new Map() } };
+      }
+
+      const appState =
+        typeof parsed.appState === 'object' && parsed.appState !== null
+          ? (parsed.appState as Record<string, unknown>)
+          : undefined;
+
       if (
-        parsed.appState?.collaborators != null &&
-        !(parsed.appState.collaborators instanceof Map)
+        appState?.collaborators != null &&
+        !(appState.collaborators instanceof Map)
       ) {
-        parsed.appState.collaborators = new Map(
-          Object.entries(parsed.appState.collaborators as Record<string, unknown>),
+        appState.collaborators = new Map(
+          Object.entries(appState.collaborators as Record<string, unknown>),
         );
       }
-      return { ...parsed, appState: { ...(parsed.appState ?? {}), collaborators: new Map() } };
+
+      return {
+        ...parsed,
+        appState: appState
+          ? { ...appState, collaborators: new Map() }
+          : { collaborators: new Map() },
+      };
     } catch {
       return { appState: { collaborators: new Map() } };
     }
@@ -214,7 +227,7 @@ function CanvasNodeView({ node, updateAttributes }: ReactNodeViewProps) {
             ref={editorCanvasRef}
             className="relative"
             style={{ height: 480 }}
-            onMouseDown={(e) => e.stopPropagation()}
+            onPointerDownCapture={(e) => e.stopPropagation()}
           >
             {excalidrawInstance}
           </div>
@@ -246,7 +259,7 @@ function CanvasNodeView({ node, updateAttributes }: ReactNodeViewProps) {
               showEmpty={isEditable}
             />
             {/* Canvas */}
-            <div className="relative flex-1" onMouseDown={(e) => e.stopPropagation()}>
+            <div className="relative flex-1" onPointerDownCapture={(e) => e.stopPropagation()}>
               {excalidrawInstance}
             </div>
           </div>,
