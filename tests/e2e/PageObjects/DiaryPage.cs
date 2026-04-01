@@ -49,10 +49,29 @@ public class DiaryPage(IPage page)
 
     /// <summary>
     /// Creates or loads today's diary entry so the editor is visible.
+    /// Ensures a journal exists first (the API auto-creates "main" on GET).
     /// </summary>
     public async Task EnsureTodayEntryAsync()
     {
         // If the editor is already visible an entry already exists.
+        if (await _page.Locator(".page-editor-content").IsVisibleAsync())
+            return;
+
+        // Ensure the "main" journal exists — the GET endpoint auto-creates it.
+        await _page.EvaluateAsync<object?>("() => fetch('/api/diary/journals').then(r => r.json())");
+
+        // Reload so the UI picks up the newly created journal.
+        await _page.ReloadAsync(new() { WaitUntil = WaitUntilState.Load });
+
+        // Suppress Next.js dev overlay again after reload.
+        await _page.EvaluateAsync(@"
+            document.querySelectorAll('nextjs-portal').forEach(el => {
+                el.style.pointerEvents = 'none';
+                el.style.display = 'none';
+            });
+        ");
+
+        // If the editor is now visible, a pre-existing today entry was already loaded.
         if (await _page.Locator(".page-editor-content").IsVisibleAsync())
             return;
 
@@ -67,7 +86,7 @@ public class DiaryPage(IPage page)
             // Button may be disabled if entry already exists — wait for editor anyway.
         }
 
-        await _page.Locator(".page-editor-content").WaitForAsync(new() { Timeout = 10_000 });
+        await _page.Locator(".page-editor-content").WaitForAsync(new() { Timeout = 15_000 });
     }
 
     /// <summary>
@@ -110,7 +129,8 @@ public class DiaryPage(IPage page)
     /// <summary>Opens the template manager dialog via the "Templates" (Edit3) header button.</summary>
     public async Task OpenTemplateManagerAsync()
     {
-        var btn = _page.GetByRole(AriaRole.Button, new() { Name = "Templates", Exact = true });
+        // Scope to the diary header (data-testid) to avoid matching the sidebar Templates button.
+        var btn = _page.Locator("[data-testid='diary-header']").GetByRole(AriaRole.Button, new() { Name = "Templates", Exact = true });
         await btn.WaitForAsync(new() { Timeout = 5_000 });
         await btn.ClickAsync();
         await _page.GetByRole(AriaRole.Dialog).WaitForAsync(new() { Timeout = 5_000 });
@@ -123,14 +143,89 @@ public class DiaryPage(IPage page)
     public async Task CreateTemplateInDialogAsync(string name, string title, string prompts = "")
     {
         await _page.GetByPlaceholder("Template name").FillAsync(name);
-        await _page.GetByPlaceholder("Template title").FillAsync(title);
+
+        // Click into the new rich-text template body editor and type content
+        var editorContent = _page.Locator("[data-testid='template-body-editor'] [contenteditable='true']");
+        await editorContent.ClickAsync();
+        await editorContent.PressSequentiallyAsync(title, new() { Delay = 30 });
+
         if (!string.IsNullOrEmpty(prompts))
-            await _page.GetByPlaceholder("Prompts (one per line)").FillAsync(prompts);
+        {
+            await _page.Keyboard.PressAsync("Enter");
+            await editorContent.PressSequentiallyAsync(prompts, new() { Delay = 30 });
+        }
 
         await _page.GetByRole(AriaRole.Button, new() { Name = "Create template", Exact = true }).ClickAsync();
 
         // Wait for the new template to appear in the manager list.
         await _page.GetByText(name).WaitForAsync(new() { Timeout = 5_000 });
+    }
+
+    /// <summary>Opens the template manager, creates a rich template with bold formatting, and closes.</summary>
+    public async Task CreateRichTemplateAsync(string name, string bodyText)
+    {
+        await OpenTemplateManagerAsync();
+        await _page.GetByPlaceholder("Template name").FillAsync(name);
+        var editorContent = _page.Locator("[data-testid='template-body-editor'] [contenteditable='true']");
+        await editorContent.ClickAsync();
+        await editorContent.PressSequentiallyAsync(bodyText, new() { Delay = 30 });
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Create template", Exact = true }).ClickAsync();
+        await _page.GetByText(name).WaitForAsync(new() { Timeout = 5_000 });
+        await CloseTemplateManagerAsync();
+    }
+
+    /// <summary>Clicks the Bold button in the template body editor toolbar.</summary>
+    public async Task ClickTemplateBoldButtonAsync()
+    {
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Bold" }).ClickAsync();
+    }
+
+    /// <summary>Clicks the H2 button in the template body editor toolbar.</summary>
+    public async Task ClickTemplateH2ButtonAsync()
+    {
+        // H2/H3 use title= not aria-label, so GetByTitle is the correct locator.
+        await _page.GetByTitle("Heading 2").ClickAsync();
+    }
+
+    /// <summary>Clicks the H3 button in the template body editor toolbar.</summary>
+    public async Task ClickTemplateH3ButtonAsync()
+    {
+        await _page.GetByTitle("Heading 3").ClickAsync();
+    }
+
+    /// <summary>Clicks the Italic button in the template body editor toolbar.</summary>
+    public async Task ClickTemplateItalicButtonAsync()
+    {
+        await _page.GetByRole(AriaRole.Button, new() { Name = "Italic" }).ClickAsync();
+    }
+
+    /// <summary>Opens the emoji picker in the template body editor toolbar.</summary>
+    public async Task OpenTemplateEmojiPickerAsync()
+    {
+        var btn = _page.GetByRole(AriaRole.Button, new() { Name = "Emoji", Exact = true });
+        await btn.WaitForAsync(new() { Timeout = 5_000 });
+        await btn.ClickAsync();
+    }
+
+    /// <summary>Types a colon followed by query to trigger emoji suggestion in template editor.</summary>
+    public async Task TypeEmojiSuggestionAsync(string query)
+    {
+        var editorContent = _page.Locator("[data-testid='template-body-editor'] [contenteditable='true']");
+        await editorContent.ClickAsync();
+        await _page.Keyboard.TypeAsync($":{query}");
+        await _page.Locator(".tiptap-emoji-list").WaitForAsync(new() { Timeout = 3_000 });
+    }
+
+    /// <summary>Selects the first emoji suggestion by pressing Enter.</summary>
+    public async Task SelectFirstEmojiSuggestionAsync()
+    {
+        await _page.Keyboard.PressAsync("Enter");
+    }
+
+    /// <summary>Presses Escape to close the emoji suggestion without selecting.</summary>
+    public async Task CloseEmojiSuggestionAsync()
+    {
+        await _page.Keyboard.PressAsync("Escape");
     }
 
     /// <summary>Closes the template manager dialog by pressing Escape.</summary>
@@ -168,6 +263,17 @@ public class DiaryPage(IPage page)
         var btn = _page.GetByTestId("confirm-delete-confirm");
         await btn.WaitForAsync(new() { Timeout = 5_000 });
         await btn.ClickAsync();
+    }
+
+    /// <summary>
+    /// If the overwrite confirmation dialog is visible, confirms it.
+    /// No-op when the entry is clean and no dialog appeared.
+    /// </summary>
+    public async Task ConfirmOverwriteIfVisibleAsync()
+    {
+        var btn = _page.GetByTestId("confirm-delete-confirm");
+        if (await btn.IsVisibleAsync())
+            await btn.ClickAsync();
     }
 
     /// <summary>Clicks the cancel button in the overwrite confirmation dialog.</summary>

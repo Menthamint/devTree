@@ -23,22 +23,29 @@ public abstract class E2ETestBase : PageTest
     public async Task SetUpPageAsync()
     {
         App = new AppPage(Page);
-        await App.GotoAsync();
 
         // Auth bootstrap only runs for non-Login test categories.
         // Login tests run against the unauthenticated page and handle their own login flow.
         var currentTest = TestContext.CurrentContext.Test;
-        var categories = currentTest.Properties.ContainsKey("Category") 
-            ? currentTest.Properties["Category"] as System.Collections.IList 
+        var categories = currentTest.Properties.ContainsKey("Category")
+            ? currentTest.Properties["Category"] as System.Collections.IList
             : null;
         var isLoginTest = categories != null && categories.Count > 0 && categories[0]?.ToString() == "Login";
 
         if (isLoginTest)
+        {
+            await App.GotoAsync();
             return; // Skip auth bootstrap for login tests
+        }
 
-        // If app redirected to login, try to sign in before continuing with non-login suites.
-        // If we're already logged in or auth fails, continue anyway.
-        if (Page.Url.Contains("/login"))
+        // For non-login tests, navigate to /login first so the auth check is reliable.
+        // The root "/" redirects to "/notebook" even for unauthenticated users, so checking
+        // Page.Url after GotoAsync("/") cannot distinguish authenticated from unauthenticated.
+        await Page.GotoAsync($"{BaseUrl}/login", new() { WaitUntil = WaitUntilState.Load });
+
+        // If /login immediately redirects to a non-login page, the session is already valid.
+        var alreadyAuthed = !Page.Url.Contains("/login");
+        if (!alreadyAuthed)
         {
             try
             {
@@ -60,6 +67,8 @@ public abstract class E2ETestBase : PageTest
                 throw new AssertionException($"Auth setup failed: {ex.Message}");
             }
         }
+
+        await App.GotoAsync();
 
         // The Next.js dev-mode overlay (nextjs-portal) can intercept pointer events
         await Page.EvaluateAsync(@"
@@ -103,9 +112,6 @@ public abstract class E2ETestBase : PageTest
         var loginPage = new LoginPage(Page);
         var shouldTryLoginFirst = hasProvidedCredentials ||
                                   string.Equals(email, FallbackE2EEmail, StringComparison.OrdinalIgnoreCase);
-
-        if (!Page.Url.Contains("/login"))
-            return;
 
         // Try login first when explicit credentials were provided OR when using
         // the default seeded demo account.

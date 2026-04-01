@@ -1,20 +1,4 @@
 'use client';
-
-/**
- * PageEditor — unified single-Tiptap-instance page editor.
- *
- * All legacy block types (Code, Checklist, Canvas, Audio, Video, Image, Table,
- * LinkCard) are wired in as custom Tiptap atom node extensions and can be
- * inserted via the block picker or the drag-handle context menu.
- *
- * Props
- * ─────
- *  content        – initial Tiptap JSONContent (null = blank doc)
- *  editable       – when false the editor renders in read-only view mode
- *  onChange       – called on every document change while editable=true
- *  pageId         – used by voice-dictation and other scoped hooks
- *  onEditorReady  – called with the Editor instance once mounted (null on destroy)
- */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -26,7 +10,9 @@ import TextAlign from '@tiptap/extension-text-align';
 import { Color, TextStyle } from '@tiptap/extension-text-style';
 import Underline from '@tiptap/extension-underline';
 import type { Node as ProseMirrorNode } from '@tiptap/pm/model';
-import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { type EditorState, Plugin, PluginKey } from '@tiptap/pm/state';
+import type { EditorView } from '@tiptap/pm/view';
+import { type Extensions, Extension } from '@tiptap/core';
 import { type Editor, EditorContent, type JSONContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { Plus } from 'lucide-react';
@@ -58,6 +44,9 @@ import './PageEditor.css';
 // heading extension only knows about the `level` attribute, so any extra attr
 // would be discarded when rendering.  We need the DOM property in order to
 // prevent the browser from ever placing the caret inside a template heading.
+const isProtectedAttr = (attrs: unknown) =>
+  (attrs as Record<string, unknown> | undefined)?.contenteditable === 'false';
+
 const TemplateHeading = Heading.extend({
   addAttributes() {
     return {
@@ -66,9 +55,7 @@ const TemplateHeading = Heading.extend({
         default: null,
         parseHTML: (element) => element.getAttribute('contenteditable'),
         renderHTML: (attributes) => {
-          if (attributes.contenteditable == null) {
-            return {};
-          }
+          if (attributes.contenteditable == null) return {};
           return { contenteditable: attributes.contenteditable };
         },
       },
@@ -82,19 +69,14 @@ const TemplateHeading = Heading.extend({
   // arrow keys.  We intercept the relevant key events and the generic before-
   // input DOM event to swallow them.
   addKeyboardShortcuts() {
-    const isProtected = (state: any) => {
+    const isProtected = (state: EditorState) => {
       const { selection } = state;
-      const { $from, $to, node } = selection;
-      if (node?.type.name === 'heading' && node.attrs.contenteditable === 'false') {
-        return true;
-      }
-      if ($from.parent.type.name === 'heading' && $from.parent.attrs.contenteditable === 'false') {
-        return true;
-      }
-      // if selection spans multiple nodes, check each for protected heading
+      const { $from, $to, node } = selection as typeof selection & { node?: ProseMirrorNode };
+      if (isProtectedAttr(node?.attrs)) return true;
+      if (isProtectedAttr($from.parent.attrs)) return true;
       let protectedFound = false;
-      state.doc.nodesBetween($from.pos, $to.pos, (n: any) => {
-        if (n.type.name === 'heading' && n.attrs.contenteditable === 'false') {
+      state.doc.nodesBetween($from.pos, $to.pos, (n: ProseMirrorNode) => {
+        if (isProtectedAttr(n.attrs)) {
           protectedFound = true;
           return false;
         }
@@ -117,9 +99,7 @@ const TemplateHeading = Heading.extend({
       key: new PluginKey('templateHeading'),
       props: {
         handleDOMEvents: {
-          beforeinput: (view: any, event: any) => {
-            // intercept delete/insertText events that could mutate a protected
-            // heading
+          beforeinput: (view: EditorView, event: InputEvent) => {
             const { inputType } = event;
             if (
               inputType.startsWith('delete') ||
@@ -127,18 +107,14 @@ const TemplateHeading = Heading.extend({
               inputType === 'insertParagraph'
             ) {
               const { selection } = view.state;
-              const { $from, $to, node } = selection;
-              if (
-                (node?.type.name === 'heading' && node.attrs.contenteditable === 'false') ||
-                ($from.parent.type.name === 'heading' &&
-                  $from.parent.attrs.contenteditable === 'false')
-              ) {
+              const { $from, $to, node } = selection as typeof selection & { node?: ProseMirrorNode };
+              if (isProtectedAttr(node?.attrs) || isProtectedAttr($from.parent.attrs)) {
                 event.preventDefault();
                 return true;
               }
               let blocked = false;
-              view.state.doc.nodesBetween($from.pos, $to.pos, (n: any) => {
-                if (n.type.name === 'heading' && n.attrs.contenteditable === 'false') {
+              view.state.doc.nodesBetween($from.pos, $to.pos, (n: ProseMirrorNode) => {
+                if (isProtectedAttr(n.attrs)) {
                   blocked = true;
                   return false;
                 }
@@ -154,6 +130,31 @@ const TemplateHeading = Heading.extend({
       },
     });
     return [plugin];
+  },
+});
+
+// Adds the `contenteditable` attribute to paragraph (and other inline block)
+// nodes so that Tiptap preserves and renders it when template content is applied.
+// The editing-prevention logic lives in TemplateHeading's keyboard shortcuts and
+// ProseMirror plugin, which now check any node type (not just headings).
+const TemplateNodeAttrs = Extension.create({
+  name: 'templateNodeAttrs',
+  addGlobalAttributes() {
+    return [
+      {
+        types: ['paragraph', 'blockquote', 'bulletList', 'orderedList', 'listItem'],
+        attributes: {
+          contenteditable: {
+            default: null,
+            parseHTML: (element: Element) => element.getAttribute('contenteditable'),
+            renderHTML: (attributes: Record<string, unknown>) => {
+              if (!attributes.contenteditable) return {};
+              return { contenteditable: attributes.contenteditable };
+            },
+          },
+        },
+      },
+    ];
   },
 });
 
@@ -272,7 +273,7 @@ export function PageEditor({
   // editor when the component rerenders (for example, due to a locale change),
   // which can trigger "/keyed plugin" errors in our unit tests.
   const editorExtensions = useMemo(() => {
-    const base: any[] = [
+    const base: Extensions = [
       // ── Built-in / community extensions ──────────────────────────────────
       StarterKit.configure({
         // Disable built-in code block only in notebook mode where custom Monaco node is used
@@ -286,6 +287,8 @@ export function PageEditor({
       }),
       // our customized heading that supports `contenteditable` attr
       TemplateHeading.configure({ levels: [1, 2, 3, 4, 5, 6] }),
+      // global attr extension that preserves `contenteditable` on paragraph and other nodes
+      TemplateNodeAttrs,
       Placeholder.configure({ placeholder: placeholderText }),
       Underline,
       Link.configure({ openOnClick: !editable, autolink: true }),

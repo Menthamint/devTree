@@ -1,9 +1,4 @@
 'use client';
-
-/**
- * EmojiPickerPopover — toolbar button that opens the full emoji picker.
- * Uses @emoji-mart/react Picker rendered inside a portal.
- */
 import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
@@ -39,7 +34,22 @@ export function EmojiPickerPopover({
   const updatePos = useCallback(() => {
     if (!btnRef.current) return;
     const r = btnRef.current.getBoundingClientRect();
-    setPos({ top: r.bottom + 4, left: r.left });
+    const PICKER_W = 352;
+    const PICKER_H = 435;
+    const GAP = 4;
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+
+    // Flip above the button if not enough room below
+    const top =
+      r.bottom + GAP + PICKER_H > vh && r.top - GAP - PICKER_H >= 0
+        ? r.top - PICKER_H - GAP
+        : r.bottom + GAP;
+
+    // Clamp so picker doesn't overflow right edge
+    const left = Math.min(r.left, vw - PICKER_W - GAP);
+
+    setPos({ top, left });
   }, []);
 
   // Blur the focused element before the picker opens so emoji-mart can apply
@@ -108,8 +118,6 @@ export function EmojiPickerPopover({
                     }}
                     onEmojiSelect={handleSelect}
                     theme={theme}
-                    previewPosition="none"
-                    skinTonePosition="none"
                   />
                 </Suspense>
               </motion.div>

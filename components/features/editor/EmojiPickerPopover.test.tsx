@@ -1,7 +1,7 @@
 /** @vitest-environment happy-dom */
-import '@testing-library/jest-dom/vitest';
 import type { ReactNode } from 'react';
 
+import '@testing-library/jest-dom/vitest';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -14,9 +14,9 @@ import { EmojiPickerPopover } from './EmojiPickerPopover';
 // mockPickerRef.onEmojiSelect would be in the TDZ when the factory runs.
 // vi.hoisted creates a value that is available before hoisting takes place.
 
-const mockPickerRef = vi.hoisted(
-  () => ({ onEmojiSelect: null as ((e: { native: string }) => void) | null }),
-);
+const mockPickerRef = vi.hoisted(() => ({
+  onEmojiSelect: null as ((e: { native: string }) => void) | null,
+}));
 
 vi.mock('@emoji-mart/react', () => ({
   default: (props: { onEmojiSelect: (e: { native: string }) => void }) => {

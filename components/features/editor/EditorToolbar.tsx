@@ -1,20 +1,6 @@
 'use client';
-
-/**
- * EditorToolbar — top-of-editor formatting controls.
- *
- * Contains: headings, bold/italic/underline/strike/inline-code,
- * text alignment, lists, blockquote, hr, text color, highlight,
- * link, comment, bookmark panel toggle, voice dictation, undo/redo.
- *
- * Extracted from the old TextBlock so it applies to the unified page editor.
- */
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-
 import { createPortal } from 'react-dom';
-
-export { ToolbarButton, type ToolbarButtonProps } from './ToolbarButton';
-import { ToolbarButton } from './ToolbarButton';
 
 import type { Editor } from '@tiptap/core';
 import {
@@ -51,39 +37,13 @@ import { VoiceDictationButton } from '@/components/features/MainContent/voice-di
 import { VoiceDictationLanguageButton } from '@/components/features/MainContent/voice-dictation/VoiceDictationLanguageButton';
 import { type Locale, useI18n } from '@/lib/i18n';
 
+export { ToolbarButton, type ToolbarButtonProps } from './ToolbarButton';
+import { ToolbarButton } from './ToolbarButton';
+
 import { BookmarksPanel } from './BookmarksPanel';
+import { ColorPickerDropdown } from './ColorPickerDropdown';
 import { EmojiPickerPopover } from './EmojiPickerPopover';
-
-// ─── Colors ───────────────────────────────────────────────────────────────────
-
-const TEXT_COLORS = [
-  { name: 'Default', value: '' },
-  { name: 'Black', value: '#000000' },
-  { name: 'Gray', value: '#6b7280' },
-  { name: 'Red', value: '#dc2626' },
-  { name: 'Orange', value: '#ea580c' },
-  { name: 'Amber', value: '#d97706' },
-  { name: 'Yellow', value: '#fbbf24' },
-  { name: 'Lime', value: '#84cc16' },
-  { name: 'Green', value: '#16a34a' },
-  { name: 'Teal', value: '#14b8a6' },
-  { name: 'Blue', value: '#2563eb' },
-  { name: 'Indigo', value: '#4f46e5' },
-  { name: 'Purple', value: '#7c3aed' },
-  { name: 'Pink', value: '#ec4899' },
-];
-
-const HIGHLIGHT_COLORS = [
-  { name: 'None', value: '' },
-  { name: 'Yellow', value: '#fef08a' },
-  { name: 'Lime', value: '#d9f99d' },
-  { name: 'Green', value: '#bbf7d0' },
-  { name: 'Cyan', value: '#a5f3fc' },
-  { name: 'Blue', value: '#bfdbfe' },
-  { name: 'Rose', value: '#fecdd3' },
-  { name: 'Pink', value: '#fbcfe8' },
-  { name: 'Orange', value: '#fed7aa' },
-];
+import { HighlightPickerDropdown } from './HighlightPickerDropdown';
 
 const FONT_FAMILIES = [
   { name: 'Default', value: '' },
@@ -760,8 +720,6 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
             const opening = !colorOpen;
             closeAll();
             setColorOpen(opening);
-            setHighlightOpen(false);
-            setLinkOpen(false);
           }}
         >
           <span
@@ -769,62 +727,16 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
             style={{ backgroundColor: editor.getAttributes('textStyle').color || 'currentColor' }}
           />
         </ToolbarButton>
-        <AnimatePresence>
-          {colorOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
-                className="fixed inset-0 z-10"
-                aria-hidden
-                onClick={() => setColorOpen(false)}
-              />
-              <motion.div
-                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
-                animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
-                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
-                className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-40 rounded-lg border p-2 shadow-lg"
-              >
-                {TEXT_COLORS.map(({ name, value }) => (
-                  <button
-                    key={name}
-                    type="button"
-                    className="hover:bg-accent flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (value) editor.chain().focus().setColor(value).run();
-                      else editor.chain().focus().unsetColor().run();
-                      setColorOpen(false);
-                    }}
-                  >
-                    <span
-                      className="border-border h-4 w-4 rounded border"
-                      style={{ backgroundColor: value || 'transparent' }}
-                    />
-                    {name}
-                  </button>
-                ))}
-                <div className="border-border mt-1 border-t pt-1">
-                  <label className="flex items-center gap-2 text-xs">
-                    <input
-                      type="color"
-                      className="h-6 w-6 border-none p-0"
-                      onChange={(e) => {
-                        const clr = e.target.value;
-                        editor.chain().focus().setColor(clr).run();
-                        setColorOpen(false);
-                      }}
-                    />{' '}
-                    Custom
-                  </label>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {colorOpen && (
+          <ColorPickerDropdown
+            currentColor={(editor.getAttributes('textStyle') as { color?: string }).color}
+            onSelectColor={(hex) => {
+              if (hex) editor.chain().focus().setColor(hex).run();
+              else editor.chain().focus().unsetColor().run();
+            }}
+            onClose={() => setColorOpen(false)}
+          />
+        )}
       </div>
 
       {/* Highlight */}
@@ -833,69 +745,23 @@ export function EditorToolbar({ editor, blockId }: EditorToolbarProps) {
           title="Highlight"
           active={!!editor.getAttributes('highlight').color}
           onClick={() => {
-            setHighlightOpen((v) => !v);
-            setColorOpen(false);
-            setLinkOpen(false);
+            const opening = !highlightOpen;
+            closeAll();
+            setHighlightOpen(opening);
           }}
         >
           <Highlighter size={14} />
         </ToolbarButton>
-        <AnimatePresence>
-          {highlightOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
-                className="fixed inset-0 z-10"
-                aria-hidden
-                onClick={() => setHighlightOpen(false)}
-              />
-              <motion.div
-                initial={reducedMotion ? { opacity: 1 } : { opacity: 0, scale: 0.97 }}
-                animate={reducedMotion ? { opacity: 1 } : { opacity: 1, scale: 1 }}
-                exit={reducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.985 }}
-                transition={{ duration: popupDuration, ease: [0.22, 1, 0.36, 1] }}
-                className="border-border bg-popover absolute top-full left-0 z-20 mt-1 w-40 rounded-lg border p-2 shadow-lg"
-              >
-                {HIGHLIGHT_COLORS.map(({ name, value }) => (
-                  <button
-                    key={name}
-                    type="button"
-                    className="hover:bg-accent flex w-full items-center gap-2 rounded px-2 py-1.5 text-left text-xs"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      if (value) editor.chain().focus().toggleHighlight({ color: value }).run();
-                      else editor.chain().focus().unsetHighlight().run();
-                      setHighlightOpen(false);
-                    }}
-                  >
-                    <span
-                      className="border-border h-4 w-4 rounded border"
-                      style={{ backgroundColor: value || 'transparent' }}
-                    />
-                    {name}
-                  </button>
-                ))}
-                <div className="border-border mt-1 border-t pt-1">
-                  <label className="flex items-center gap-2 text-xs">
-                    <input
-                      type="color"
-                      className="h-6 w-6 border-none p-0"
-                      onChange={(e) => {
-                        const clr = e.target.value;
-                        editor.chain().focus().toggleHighlight({ color: clr }).run();
-                        setHighlightOpen(false);
-                      }}
-                    />
-                    Custom
-                  </label>
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
+        {highlightOpen && (
+          <HighlightPickerDropdown
+            currentHighlight={(editor.getAttributes('highlight') as { color?: string }).color}
+            onSelectHighlight={(hex) => {
+              if (hex) editor.chain().focus().toggleHighlight({ color: hex }).run();
+              else editor.chain().focus().unsetHighlight().run();
+            }}
+            onClose={() => setHighlightOpen(false)}
+          />
+        )}
       </div>
 
       {/* Link */}

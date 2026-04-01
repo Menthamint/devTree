@@ -25,28 +25,10 @@ function handleDiaryApiError(scope: string, error: unknown, fallbackMessage: str
   return NextResponse.json({ error: fallbackMessage }, { status: 500 });
 }
 
-type DiaryJournalDelegate = {
-  findUnique: (args: unknown) => Promise<{ id: string; ownerId: string } | null>;
-};
-
-type DiaryTemplateDelegate = {
-  findMany: (
-    args: unknown,
-  ) => Promise<Array<{ id: string; name: string; body: string; createdAt: Date; updatedAt: Date }>>;
-  create: (
-    args: unknown,
-  ) => Promise<{ id: string; name: string; body: string; createdAt: Date; updatedAt: Date }>;
-};
-
-const delegates = prisma as unknown as {
-  diaryJournal: DiaryJournalDelegate;
-  diaryTemplate: DiaryTemplateDelegate;
-};
-
 type Params = { params: Promise<{ journalId: string }> };
 
 async function ensureOwnedJournal(journalId: string, userId: string): Promise<boolean> {
-  const journal = await delegates.diaryJournal.findUnique({
+  const journal = await prisma.diaryJournal.findUnique({
     where: { id: journalId },
     select: { id: true, ownerId: true },
   });
@@ -64,7 +46,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     const owned = await ensureOwnedJournal(journalId, auth.userId);
     if (!owned) return NextResponse.json({ error: 'Journal not found' }, { status: 404 });
 
-    const templates = await delegates.diaryTemplate.findMany({
+    const templates = await prisma.diaryTemplate.findMany({
       where: { journalId },
       orderBy: [{ createdAt: 'asc' }],
       select: { id: true, name: true, body: true, createdAt: true, updatedAt: true },
@@ -105,15 +87,18 @@ export async function POST(req: NextRequest, { params }: Params) {
   if (name.length > 80) {
     return NextResponse.json({ error: 'name is too long' }, { status: 400 });
   }
-  if (templateBody.length > 8000) {
-    return NextResponse.json({ error: 'body is too long' }, { status: 400 });
+  if (templateBody.length > 20000) {
+    return NextResponse.json(
+      { error: 'body is too long (max 20 000 characters)' },
+      { status: 400 },
+    );
   }
 
   try {
     const owned = await ensureOwnedJournal(journalId, auth.userId);
     if (!owned) return NextResponse.json({ error: 'Journal not found' }, { status: 404 });
 
-    const template = await delegates.diaryTemplate.create({
+    const template = await prisma.diaryTemplate.create({
       data: { journalId, name, body: templateBody },
       select: { id: true, name: true, body: true, createdAt: true, updatedAt: true },
     });

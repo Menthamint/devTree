@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 
+import type { JSONContent } from '@tiptap/core';
 import type { Editor } from '@tiptap/react';
 import { CalendarDays, Plus } from 'lucide-react';
 import { useReducedMotion } from 'motion/react';
@@ -21,7 +22,13 @@ import { DiaryCreateEntryDialog } from './DiaryCreateEntryDialog';
 import { DiaryHeader } from './DiaryHeader';
 import { DiarySidebarContent } from './DiarySidebarContent';
 import { DiaryTemplateManagerDialog } from './DiaryTemplateManagerDialog';
-import { templateBodyToContent, toDateOnly } from './diaryUtils';
+import {
+  isLegacyTemplateBody,
+  parseTemplateBodyToJson,
+  templateBodyToContent,
+  templateJsonToContent,
+  toDateOnly,
+} from './diaryUtils';
 import { useDiaryEntries } from './hooks/useDiaryEntries';
 import { useDiaryJournals } from './hooks/useDiaryJournals';
 import { useDiaryTemplates } from './hooks/useDiaryTemplates';
@@ -123,7 +130,6 @@ export default function DiaryPageClient() {
     };
   }, [entriesByDate, selectedDate]);
 
-  // ── Unsaved changes guard ────────────────────────────────────────────────────
   const requestWithUnsavedGuard = useCallback(
     (action: () => void) => {
       if (!isDirty) {
@@ -183,7 +189,13 @@ export default function DiaryPageClient() {
         });
         if (!confirmed) return;
       }
-      const nextContent = templateBodyToContent(template.body);
+      let nextContent: JSONContent;
+      if (isLegacyTemplateBody(template.body)) {
+        nextContent = templateBodyToContent(template.body);
+      } else {
+        const parsed = parseTemplateBodyToJson(template.body);
+        nextContent = parsed ? templateJsonToContent(parsed) : templateBodyToContent(template.body);
+      }
       setContent(nextContent);
       setIsDirty(true);
       setSaveState('idle');
@@ -207,7 +219,6 @@ export default function DiaryPageClient() {
     pending?.();
   };
 
-  // ── Effects ─────────────────────────────────────────────────────────────────
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.replace('/login');
@@ -254,7 +265,6 @@ export default function DiaryPageClient() {
     if (selectedDate && selectedEntryExists) setMobileSidebarVisible(false);
   }, [isMobile, selectedDate, selectedEntryExists]);
 
-  // ── Loading spinner ──────────────────────────────────────────────────────────
   if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="flex h-full items-center justify-center">
@@ -264,9 +274,9 @@ export default function DiaryPageClient() {
   }
 
   const initialLoading = journals.length === 0 || loadingList || loadingEntry;
-  const createPrimaryButtonClass =
+  const primaryButtonClass =
     'bg-primary text-primary-foreground hover:bg-primary/90 inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold shadow-sm transition-colors disabled:opacity-60';
-  const createActionButtonClass =
+  const actionButtonClass =
     'border-border bg-card hover:bg-accent/70 hover:border-primary/35 flex w-full items-center gap-2 rounded-xl border px-3 py-2.5 text-sm font-medium shadow-xs transition-colors';
 
   const mainContent = (
@@ -304,7 +314,7 @@ export default function DiaryPageClient() {
               <button
                 type="button"
                 onClick={() => createEntryForDate(today)}
-                className={cn(createPrimaryButtonClass, 'w-full')}
+                className={cn(primaryButtonClass, 'w-full')}
                 disabled={todayEntryExists || creatingEntry}
               >
                 <Plus size={14} />
@@ -312,7 +322,7 @@ export default function DiaryPageClient() {
               </button>
               <button
                 type="button"
-                className={createActionButtonClass}
+                className={actionButtonClass}
                 onClick={() => {
                   setCreateDateValue(selectedDate ?? today);
                   setShowCreateDialog(true);

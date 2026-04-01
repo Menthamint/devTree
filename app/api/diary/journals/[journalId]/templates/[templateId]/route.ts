@@ -62,8 +62,11 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (name.length > 80) {
     return NextResponse.json({ error: 'name is too long' }, { status: 400 });
   }
-  if (templateBody.length > 8000) {
-    return NextResponse.json({ error: 'body is too long' }, { status: 400 });
+  if (templateBody.length > 20000) {
+    return NextResponse.json(
+      { error: 'body is too long (max 20 000 characters)' },
+      { status: 400 },
+    );
   }
 
   try {

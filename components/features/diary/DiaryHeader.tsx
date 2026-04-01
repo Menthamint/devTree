@@ -48,12 +48,10 @@ export function DiaryHeader({
   const [showTemplateMenu, setShowTemplateMenu] = useState(false);
   const templateMenuRef = useRef<HTMLDivElement>(null);
 
-  // Close template menu on outside click
-  // We use onBlur/onPointerDown inside the div rather than a global listener to keep things simple
   const headerSubtitle = getHeaderSubtitle(selectedDate, weatherSummary?.locationShort, t);
 
   return (
-    <header className="border-border bg-card flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2.5 sm:px-4 sm:py-3">
+    <header data-testid="diary-header" className="border-border bg-card flex flex-wrap items-center justify-between gap-2 border-b px-3 py-2.5 sm:px-4 sm:py-3">
       <div className="flex">
         {!mobileSidebarVisible && (
           <button
@@ -166,11 +164,12 @@ export function DiaryHeader({
               aria-label={t('main.save')}
               disabled={!isDirty || !selectedDate || loadingEntry || creatingEntry}
               onClick={onSave}
-              className={
+              className={cn(
+                'inline-flex items-center gap-1 rounded-md px-3 py-2 text-sm',
                 isDirty && selectedDate && !loadingEntry && !creatingEntry
-                  ? 'inline-flex items-center gap-1 rounded-md bg-indigo-600 px-3 py-2 text-sm text-white hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-600'
-                  : 'bg-muted text-muted-foreground inline-flex cursor-not-allowed items-center gap-1 rounded-md px-3 py-2 text-sm'
-              }
+                  ? 'bg-primary text-primary-foreground hover:bg-primary/90'
+                  : 'bg-muted text-muted-foreground cursor-not-allowed',
+              )}
             >
               <Save size={14} />
               {t('main.save')}

@@ -568,3 +568,19 @@
 .excalidraw-modal-container {
   z-index: 10000 !important;
 }
+
+@layer components {
+  /* em-emoji-picker is a shadow-DOM web component; Tailwind utilities cannot reach inside it */
+  em-emoji-picker {
+    /* Default Mobile: large scroll area */
+    height: 70vh;
+    width: 100%;
+  }
+
+  @media (min-width: 768px) {
+    em-emoji-picker {
+      /* Desktop: compact scroll area */
+      height: 400px;
+    }
+  }
+}

@@ -208,10 +208,20 @@
   margin-top: 0.5rem;
 }
 
-/* make template-provided headings completely non-selectable so users can't
+/* make template-provided nodes completely non-selectable so users can't
    accidentally highlight and delete them */
 .ProseMirror [contenteditable='false'] {
   user-select: none;
+}
+
+/* Same margin fix as headings above, but for non-editable paragraphs.
+   When a <p contenteditable="false"> has margin-top, clicking in that margin
+   area hits the non-editable element and the browser refuses to place a cursor,
+   making the editable paragraph above/below unreachable.  Zero both margins so
+   all visual spacing comes from the adjacent editable paragraphs' margin-top. */
+.ProseMirror p[contenteditable='false'] {
+  margin-top: 0;
+  margin-bottom: 0;
 }
 
 /* ── Inline tag filter highlighting ─────────────────────────────────────── */

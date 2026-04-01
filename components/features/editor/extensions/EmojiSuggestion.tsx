@@ -1,15 +1,7 @@
 'use client';
-
-/**
- * EmojiSuggestion — typing ":" opens a searchable emoji dropdown.
- *
- * Uses @tiptap/suggestion. When the user types ":smile" the list filters
- * to matching emojis. If query >= 2 chars and no matches, the popup hides.
- * Selecting an emoji inserts the native Unicode character at the cursor.
- */
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
-import { Extension } from '@tiptap/core';
+import { type Editor, Extension } from '@tiptap/core';
 import { PluginKey } from '@tiptap/pm/state';
 import { ReactRenderer } from '@tiptap/react';
 import Suggestion, { type SuggestionOptions } from '@tiptap/suggestion';
@@ -113,6 +105,7 @@ const EmojiSuggestionList = forwardRef<EmojiListHandle, EmojiListProps>((props, 
               ? 'bg-accent text-accent-foreground'
               : 'text-foreground hover:bg-accent/50',
           )}
+          onMouseDown={(e) => e.preventDefault()}
           onClick={() => props.command(item)}
         >
           <span className="text-lg leading-none">{item.native}</span>
@@ -123,6 +116,22 @@ const EmojiSuggestionList = forwardRef<EmojiListHandle, EmojiListProps>((props, 
   );
 });
 EmojiSuggestionList.displayName = 'EmojiSuggestionList';
+
+// ─── Popup positioning helper ─────────────────────────────────────────────────
+
+// When the popup lives inside a CSS-transformed element (e.g. a Radix Dialog whose
+// content has translate-x/y), position:fixed is relative to that element's border-box,
+// not the viewport. We subtract the container's bounding rect to compensate.
+function placePopup(el: HTMLDivElement, container: Element, rect: DOMRect) {
+  if (container === document.body) {
+    el.style.top = `${rect.bottom + 4}px`;
+    el.style.left = `${rect.left}px`;
+  } else {
+    const cb = container.getBoundingClientRect();
+    el.style.top = `${rect.bottom - cb.top + 4}px`;
+    el.style.left = `${rect.left - cb.left}px`;
+  }
+}
 
 // ─── Suggestion options builder ───────────────────────────────────────────────
 
@@ -155,7 +164,7 @@ function buildSuggestionOptions(): Omit<SuggestionOptions<EmojiItem>, 'editor'> 
       let reactRenderer: ReactRenderer<EmojiListHandle> | null = null;
       let popupEl: HTMLDivElement | null = null;
       let removeOutsideListener: (() => void) | null = null;
-      let activeEditor: import('@tiptap/core').Editor | null = null;
+      let activeEditor: Editor | null = null;
 
       const cleanup = () => {
         if (removeOutsideListener) {
@@ -176,7 +185,17 @@ function buildSuggestionOptions(): Omit<SuggestionOptions<EmojiItem>, 'editor'> 
           popupEl = document.createElement('div');
           popupEl.style.position = 'fixed';
           popupEl.style.zIndex = '9999';
-          document.body.appendChild(popupEl);
+
+          // When inside a Radix Dialog, appending to document.body makes the popup
+          // inert because Radix aria-hides all document.body siblings of its portal.
+          // Appending INSIDE [role="dialog"] (the dialog content element) keeps it
+          // within the focus scope and avoids aria-hiding.
+          // Note: the dialog content has a CSS transform, so position:fixed inside it
+          // is relative to the dialog's border-box — we compensate below.
+          const editorEl = props.editor.view.dom;
+          const dialogEl = editorEl.closest<HTMLElement>('[role="dialog"]');
+          const container = dialogEl ?? document.body;
+          container.appendChild(popupEl);
 
           reactRenderer = new ReactRenderer(EmojiSuggestionList, {
             props,
@@ -189,10 +208,7 @@ function buildSuggestionOptions(): Omit<SuggestionOptions<EmojiItem>, 'editor'> 
 
           if (props.clientRect) {
             const rect = props.clientRect();
-            if (rect) {
-              popupEl.style.top = `${rect.bottom + 4}px`;
-              popupEl.style.left = `${rect.left}px`;
-            }
+            if (rect) placePopup(popupEl, container, rect);
           }
 
           const onPointerDownOutside = (event: PointerEvent) => {
@@ -208,12 +224,9 @@ function buildSuggestionOptions(): Omit<SuggestionOptions<EmojiItem>, 'editor'> 
         onUpdate(props) {
           activeEditor = props.editor;
           reactRenderer?.updateProps(props);
-          if (!props.clientRect) return;
+          if (!props.clientRect || !popupEl) return;
           const rect = props.clientRect();
-          if (rect && popupEl) {
-            popupEl.style.top = `${rect.bottom + 4}px`;
-            popupEl.style.left = `${rect.left}px`;
-          }
+          if (rect) placePopup(popupEl, popupEl.parentElement ?? document.body, rect);
         },
 
         onKeyDown(props) {

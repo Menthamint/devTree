@@ -1,29 +1,4 @@
 'use client';
-
-/**
- * BlockControls — drag grip + block-action menu + "+" block-picker launcher.
- *
- * HOW IT WORKS
- * ─────────────
- * `tiptap-extension-global-drag-handle` creates its own `.drag-handle` div and
- * appends it to `editor.view.dom.parentElement`. It moves the div and shows/
- * hides it by manipulating `style.left/top` and the `.hide` CSS class.
- *
- * We find that element AFTER the editor mounts and portal our React buttons
- * INTO it (createPortal). The library retains full control of position and
- * visibility while we own the inner UI.
- *
- * Layout (column): [ ⠿ ]   ← grip / block-action menu
- *                  [ + ]   ← block-picker popup
- *
- * ⠿  → draggable (drag-and-drop) OR click to open block-action dropdown.
- * +  → inserts a paragraph below and opens a block-picker popup.
- *      The picker shows all block types; selecting one replaces the paragraph.
- *      No "/" is inserted into the document.
- *
- * Both dropdowns auto-flip above when near viewport bottom; close on outside
- * pointer-down (capture phase) or Escape.
- */
 import { forwardRef, useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 
